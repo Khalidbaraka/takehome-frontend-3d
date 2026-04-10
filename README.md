@@ -17,6 +17,10 @@ It's okay to not complete everything (there is _a lot_ that can be improved), we
 
 - Allow the user to see the shape's geometry type and color in the tree view
 
+## AI tools usage
+
+Feel free to use whatever you would use in your day to day work. However, if you do use AI tools please add a disclaimer saying which tool and in which part of the project.
+
 ## Getting Started
 
 1. **Clone the Repository**: Start by cloning the repository to your local machine.
@@ -58,6 +62,8 @@ We don't expect you to build everything from scratch, feel free to use libraries
 - **Code Quality**: Cleanliness, readability, and maintainability of the code.
 - **Complexity**: Space and time complexity. How would the application behave with 1000 shapes, what about 10 000?
 - **Iterative Improvement**: How you approach design flaws while implementing new features. Your git history can help demonstrate this.
+
+We encourage you to document an explanation of your approach to tackle this take home. It can be in any format you prefer (i.e. text, video, audio), just make sure we have access to it. If you do a video or audio try to keep it under 5 minutes.
 
 ## Contact
 
