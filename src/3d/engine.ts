@@ -1,5 +1,8 @@
 import {
+  AmbientLight,
   Color,
+  DirectionalLight,
+  HemisphereLight,
   Mesh,
   Object3D,
   PerspectiveCamera,
@@ -16,6 +19,7 @@ export default class ThreeEngineController {
   private camera?: PerspectiveCamera;
   private renderer?: WebGLRenderer;
   private controls?: OrbitControls;
+  private objectCount = 0;
   private isSceneInitialized: boolean = false;
 
   private constructor() {}
@@ -101,16 +105,7 @@ export default class ThreeEngineController {
   }
 
   getObjectCount() {
-    if (!this.scene) {
-      throw new Error("Scene is not initialized");
-    }
-    let count = 0;
-    this.scene.traverse((object) => {
-      if (object instanceof Mesh) {
-        count++;
-      }
-    });
-    return count;
+    return this.objectCount;
   }
 
   updateSize(canvasElement: HTMLCanvasElement) {
@@ -144,6 +139,14 @@ export default class ThreeEngineController {
     this.scene.remove(object);
   }
 
+  trackAddedObject(object: Object3D) {
+    this.objectCount += countMeshes(object);
+  }
+
+  trackRemovedObject(object: Object3D) {
+    this.objectCount = Math.max(0, this.objectCount - countMeshes(object));
+  }
+
   private destroy() {
     console.warn("Destroying Three Engine");
 
@@ -151,6 +154,7 @@ export default class ThreeEngineController {
     this.renderer?.dispose();
     this.scene?.clear();
     this.camera?.clear();
+    this.objectCount = 0;
 
     this.isSceneInitialized = false;
   }
@@ -159,6 +163,16 @@ export default class ThreeEngineController {
 function buildScene() {
   const scene = new Scene();
   scene.background = new Color(0x1a1d23);
+
+  const hemisphereLight = new HemisphereLight(0xe2e8f0, 0x111827, 1.1);
+  const ambientLight = new AmbientLight(0xffffff, 0.45);
+  const keyLight = new DirectionalLight(0xffffff, 1.4);
+  keyLight.position.set(6, 10, 8);
+
+  const fillLight = new DirectionalLight(0x93c5fd, 0.45);
+  fillLight.position.set(-5, 4, -6);
+
+  scene.add(hemisphereLight, ambientLight, keyLight, fillLight);
 
   return scene;
 }
@@ -170,6 +184,7 @@ function buildRenderer(canvasElement: HTMLCanvasElement) {
   });
 
   renderer.setClearColor(0x1a1d23, 1);
+  renderer.outputColorSpace = "srgb";
 
   return renderer;
 }
@@ -222,4 +237,14 @@ function buildControls(
   controls.maxPolarAngle = Math.PI / 2;
 
   return controls;
+}
+
+function countMeshes(object: Object3D) {
+  let count = 0;
+  object.traverse((child) => {
+    if (child instanceof Mesh) {
+      count++;
+    }
+  });
+  return count;
 }
