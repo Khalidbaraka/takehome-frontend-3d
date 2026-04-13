@@ -1,14 +1,11 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import styles from "./SceneCanvas.module.css";
 import ThreeEngineController from "../3d/engine";
-import type { MainViewController } from "../3d/MainViewController";
+import { useShapes } from "../shapes/ShapeProvider";
 
-export default function SceneCanvas({
-  controller,
-}: {
-  controller: MainViewController;
-}) {
+export default function SceneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { selectShapeFromCanvas } = useShapes();
 
   // should we move it layoutEffect?
   useEffect(() => {
@@ -58,7 +55,7 @@ export default function SceneCanvas({
       onClick={(event) => {
         const engine = ThreeEngineController.getInstance();
         const point = engine.clientToNdc(event);
-        controller.selectShape(point);
+        selectShapeFromCanvas(point);
       }}
     />
   );

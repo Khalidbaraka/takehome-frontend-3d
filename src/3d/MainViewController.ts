@@ -11,8 +11,13 @@ export interface MainViewController {
   shapeDeleted(shape: THREE.Mesh): void;
 }
 
+/**
+ * @deprecated ShapeProvider is the source of truth for app/UI state.
+ * This controller remains as a bridge to the Three.js scene and canvas interactions.
+ */
 export function createMainViewController(): MainViewController {
   const view = ThreeEngineController.getInstance();
+  const raycaster = new RayCastService();
 
   let selectedShape: THREE.Mesh | null = null;
   let nextShapeNumber = 1;
@@ -26,33 +31,37 @@ export function createMainViewController(): MainViewController {
     );
   }
 
-  // I dont understand this funciton why we are setting
-  // the isSelected to false and then checking if the original material exists and then setting the material to the original material
-  function highlightObject(obj: THREE.Mesh) {
-    obj.userData.isSelected = false;
-    if (obj.userData.originalMaterial) {
-      obj.material = obj.userData.originalMaterial;
+  function restoreMeshMaterial(mesh: THREE.Mesh | null) {
+    if (!mesh) {
+      return;
     }
+
+    mesh.userData.isSelected = false;
+    if (mesh.userData.originalMaterial) {
+      mesh.material = mesh.userData.originalMaterial;
+      delete mesh.userData.originalMaterial;
+    }
+  }
+
+  function selectMesh(mesh: THREE.Mesh) {
+    mesh.userData.isSelected = true;
+    if (!mesh.userData.originalMaterial) {
+      mesh.userData.originalMaterial = mesh.material;
+    }
+    mesh.material = highlightedMaterial;
   }
 
   getNotificationCenter().subscribe(
     "shapeSelected",
     (mesh: THREE.Mesh | null) => {
-      const objects = view.getObjectsInScene();
-      // This is O(n): reset the highlight state of all objects in the scene
-      objects.forEach((obj) => {
-        highlightObject(obj as THREE.Mesh);
-        obj.traverse((child) => highlightObject(child as THREE.Mesh));
-      });
+      restoreMeshMaterial(selectedShape);
 
       if (mesh === null) {
         selectedShape = null;
         return;
       }
 
-      mesh.userData.isSelected = true;
-      mesh.userData.originalMaterial = mesh.material;
-      mesh.material = highlightedMaterial;
+      selectMesh(mesh);
       selectedShape = mesh;
     },
   );
@@ -71,16 +80,13 @@ export function createMainViewController(): MainViewController {
           view.addToScene(newMesh);
         }
 
-        // herer as well, we are notifying the notification center that a shape has been added and we are passing the current objects in the scene as the payload
+        view.trackAddedObject(newMesh);
         getNotificationCenter().notify("shapeAdded", view.getObjectsInScene());
       }
     },
     selectShape(point: [number, number]) {
-      // we are creating a raycaster everytime and its not efficient.
-      const raycaster = new RayCastService();
       raycaster.update(point, view.getCamera());
 
-      // This is O(n): we check all objects in the scene for intersection with the ray
       const objects = view.getObjectsInScene();
       const selectedObjects = raycaster.getIntersections(objects);
       if (!selectedObjects.length) {
@@ -93,10 +99,11 @@ export function createMainViewController(): MainViewController {
     },
     deleteSelectedShape() {
       if (selectedShape) {
+        const shapeToRemove = selectedShape;
         selectedShape.parent?.remove(selectedShape);
+        view.trackRemovedObject(shapeToRemove);
         getNotificationCenter().notify(
           "shapeRemoved",
-          // here as wel we are retrieving all the objects as well
           view.getObjectsInScene(),
         );
         getNotificationCenter().notify("shapeSelected", null);
@@ -110,6 +117,7 @@ export function createMainViewController(): MainViewController {
           shape.getObjectById(selectedShape.id) !== undefined);
 
       shape.parent?.remove(shape);
+      view.trackRemovedObject(shape);
       getNotificationCenter().notify("shapeRemoved", view.getObjectsInScene());
 
       if (shouldClearSelection) {

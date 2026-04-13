@@ -28,9 +28,9 @@ describe("App Features", () => {
       uuid: "shape-root-a",
     });
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Add sphere"));
+      await waitFor(() => findButtonByText(app.root, "Sphere"));
 
-      app.controller.createShape("sphere");
+      clickElement(findButtonByText(app.root, "Sphere"));
       const treeItem = await waitFor(() =>
         findShapeItem(app.root, rootMesh.uuid),
       );
@@ -50,15 +50,15 @@ describe("App Features", () => {
       uuid: "shape-child-a",
     });
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Add cube"));
+      await waitFor(() => findButtonByText(app.root, "Cube"));
 
-      app.controller.createShape("cube");
+      clickElement(findButtonByText(app.root, "Cube"));
       await waitFor(() => findShapeItem(app.root, parentMesh.uuid));
 
       clickElement(findShapeItem(app.root, parentMesh.uuid));
       await flushUi();
 
-      app.controller.createShape("cylinder");
+      clickElement(findButtonByText(app.root, "Cylinder"));
       await waitFor(() => findShapeItem(app.root, childMesh.uuid));
 
       expect(findShapeItem(app.root, parentMesh.uuid)).not.toBeNull();
@@ -79,7 +79,7 @@ describe("App Features", () => {
         app.root.querySelector('[data-testid="scene-canvas"]'),
       )) as HTMLCanvasElement;
 
-      app.controller.createShape("sphere");
+      clickElement(findButtonByText(app.root, "Sphere"));
       await waitFor(() => findShapeItem(app.root, rootMesh.uuid));
 
       const rect = canvas.getBoundingClientRect();
@@ -105,9 +105,9 @@ describe("App Features", () => {
       uuid: "shape-tree-a",
     });
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Add cube"));
+      await waitFor(() => findButtonByText(app.root, "Cube"));
 
-      app.controller.createShape("cube");
+      clickElement(findButtonByText(app.root, "Cube"));
       const treeItem = await waitFor(() =>
         findShapeItem(app.root, rootMesh.uuid),
       );
@@ -136,16 +136,16 @@ describe("App Features", () => {
       uuid: "shape-child-b2",
     });
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Add cube"));
+      await waitFor(() => findButtonByText(app.root, "Cube"));
 
-      app.controller.createShape("cube");
+      clickElement(findButtonByText(app.root, "Cube"));
       await waitFor(() => findShapeItem(app.root, parentMesh.uuid));
 
       clickElement(findShapeItem(app.root, parentMesh.uuid));
       await flushUi();
 
-      app.controller.createShape("sphere");
-      app.controller.createShape("cylinder");
+      clickElement(findButtonByText(app.root, "Sphere"));
+      clickElement(findButtonByText(app.root, "Cylinder"));
       await waitFor(() => findShapeItem(app.root, childTwo.uuid));
 
       clickElement(findDeleteButton(app.root, childOne.uuid));
@@ -172,16 +172,16 @@ describe("App Features", () => {
       uuid: "shape-child-c2",
     });
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Add cube"));
+      await waitFor(() => findButtonByText(app.root, "Cube"));
 
-      app.controller.createShape("cube");
+      clickElement(findButtonByText(app.root, "Cube"));
       await waitFor(() => findShapeItem(app.root, parentMesh.uuid));
 
       clickElement(findShapeItem(app.root, parentMesh.uuid));
       await flushUi();
 
-      app.controller.createShape("sphere");
-      app.controller.createShape("cylinder");
+      clickElement(findButtonByText(app.root, "Sphere"));
+      clickElement(findButtonByText(app.root, "Cylinder"));
       await waitFor(() => findDeleteButton(app.root, parentMesh.uuid));
 
       clickElement(findDeleteButton(app.root, parentMesh.uuid));
@@ -206,21 +206,21 @@ describe("App Features", () => {
       uuid: "shape-root-d2",
     });
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Add cube"));
+      await waitFor(() => findButtonByText(app.root, "Cube"));
 
-      app.controller.createShape("cube");
+      clickElement(findButtonByText(app.root, "Cube"));
       await waitFor(() => findShapeItem(app.root, parentMesh.uuid));
 
       clickElement(findShapeItem(app.root, parentMesh.uuid));
       await flushUi();
 
-      app.controller.createShape("sphere");
+      clickElement(findButtonByText(app.root, "Sphere"));
       await waitFor(() => findDeleteButton(app.root, parentMesh.uuid));
 
       clickElement(findDeleteButton(app.root, parentMesh.uuid));
       await flushUi();
 
-      app.controller.createShape("cylinder");
+      clickElement(findButtonByText(app.root, "Cylinder"));
       await waitFor(() => findShapeItem(app.root, replacementRoot.uuid));
 
       expect(replacementRoot.parent?.type).toBe("Scene");
@@ -230,16 +230,32 @@ describe("App Features", () => {
   });
 
   it("should be able to update the project name and show the updated name in the shape list", async () => {
-    const promptSpy = vi
-      .spyOn(window, "prompt")
-      .mockReturnValue("Updated Project");
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Change name"));
+      const editButton = await waitFor(() =>
+        app.root.querySelector('[aria-label="Edit project name"]'),
+      );
 
-      clickElement(findButtonByText(app.root, "Change name"));
+      clickElement(editButton);
       await flushUi();
 
-      expect(promptSpy).toHaveBeenCalled();
+      const input = app.root.querySelector(
+        '[aria-label="Project name"]',
+      ) as HTMLInputElement | null;
+      expect(input).not.toBeNull();
+      if (!input) {
+        return;
+      }
+
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      valueSetter?.call(input, "Updated Project");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+
+      clickElement(app.root.querySelector('[aria-label="Save project name"]'));
+      await flushUi();
+
       expect(app.root.textContent).toContain("Updated Project");
     });
   });
@@ -250,9 +266,9 @@ describe("App Features", () => {
       uuid: "shape-bonus-a",
     });
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Add sphere"));
+      await waitFor(() => findButtonByText(app.root, "Sphere"));
 
-      app.controller.createShape("sphere");
+      clickElement(findButtonByText(app.root, "Sphere"));
       const treeItem = await waitFor(() =>
         findShapeItem(app.root, rootMesh.uuid),
       );
@@ -275,15 +291,15 @@ describe("App Features", () => {
     });
 
     await withApp(async (app) => {
-      await waitFor(() => findButtonByText(app.root, "Add cube"));
+      await waitFor(() => findButtonByText(app.root, "Cube"));
 
-      app.controller.createShape("cube");
+      clickElement(findButtonByText(app.root, "Cube"));
       await waitFor(() => findShapeItem(app.root, parentMesh.uuid));
 
       clickElement(findShapeItem(app.root, parentMesh.uuid));
       await flushUi();
 
-      app.controller.createShape("sphere");
+      clickElement(findButtonByText(app.root, "Sphere"));
       await waitFor(() => findShapeItem(app.root, childMesh.uuid));
 
       clickElement(findToggleButton(app.root, parentMesh.uuid));

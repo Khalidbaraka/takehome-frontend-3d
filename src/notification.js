@@ -3,12 +3,14 @@ class Notification {
 
   subscribe(topic, callback) {
     if (!this.notifiees.has(topic)) {
-      // add that topoc and its callbacks list to be empty
       this.notifiees.set(topic, []);
     }
-    // add the callback to the list of callbacks for that topic
-    // do we even check if it exists? to avoid duplicates?
-    this.notifiees.get(topic).push(callback);
+    const callbacks = this.notifiees.get(topic);
+    if (!callbacks.includes(callback)) {
+      callbacks.push(callback);
+    }
+
+    return () => this.unsubscribe(topic, callback);
   }
 
   unsubscribe(topic, callback) {
@@ -29,12 +31,16 @@ class Notification {
       return;
     }
     const callbacks = this.notifiees.get(topic);
-    // notify all the callbacks for that topic with the value
     callbacks.forEach((callback) => callback(value));
   }
 }
 
 let notificationCenter = undefined;
+
+/**
+ * @deprecated The active app flow uses ShapeProvider as the source of truth.
+ * This notification center remains only for legacy code paths.
+ */
 export function getNotificationCenter() {
   if (!notificationCenter) {
     notificationCenter = new Notification();
@@ -42,6 +48,10 @@ export function getNotificationCenter() {
   return notificationCenter;
 }
 
+/**
+ * @deprecated The active app flow uses ShapeProvider as the source of truth.
+ * This reset helper remains only for legacy code paths and test cleanup.
+ */
 export function resetNotificationCenter() {
   notificationCenter = undefined;
 }
