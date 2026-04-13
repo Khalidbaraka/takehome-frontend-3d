@@ -2,8 +2,8 @@ import $ from 'jquery'
 import '../styles/toolbar.css'
 import { getNotificationCenter } from './notification'
 
-export function createToolbar() {
-  const toolbar = $('.top-toolbar')
+export function createToolbar(root = document) {
+  const toolbar = $(root).find('.top-toolbar')
   const name = $('<h2>').addClass('project-name').text('Project')
   const changeNameBtn = $('<button>')
     .text('Change name')

@@ -1,7 +1,7 @@
 import $ from 'jquery'
 import '../styles/app.css'
 
-export function createLayout() {
+export function createLayout(root = document.body) {
   let $toolbar = $('<nav>').addClass('top-toolbar')
   let $mainContainer = $('<div>').addClass('main-container')
 
@@ -13,5 +13,5 @@ export function createLayout() {
     .text('Project name + list of 3D objects')
 
   $mainContainer.append($leftBar, $centerArea, $rightBar)
-  $('body').append($toolbar, $mainContainer)
+  $(root).append($toolbar, $mainContainer)
 }
