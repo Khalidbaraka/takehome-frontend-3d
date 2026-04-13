@@ -9,28 +9,29 @@ body {
 
 /* Top Toolbar */
 .top-toolbar {
-  height: 50px;
+  min-height: 72px;
   background: #181b20;
   border-bottom: 1px solid #2d3139;
   color: white;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 28px;
 }
 
 /* Main Content Area */
 .main-container {
   display: flex;
   width: 100%;
-  height: calc(100% - 50px);
+  height: calc(100% - 72px);
 }
 
 .left-bar {
-  max-width: 200px;
+  width: 240px;
+  min-width: 240px;
   background: #1f2228;
   border-right: 1px solid #2d3139;
   color: #f3f4f6;
-  padding: 10px;
+  padding: 12px;
 }
 
 .right-bar {

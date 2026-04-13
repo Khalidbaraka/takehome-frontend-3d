@@ -1,5 +1,6 @@
 .container {
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   gap: 8px;
   display: flex;
@@ -7,10 +8,14 @@
 }
 
 .treeContainer {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  padding-right: 2px;
+  overscroll-behavior: contain;
 }
 
 .emptyState {
@@ -33,6 +38,7 @@
 }
 
 .shapeItem {
+  min-width: 0;
   border-radius: 10px;
   padding: 4px 6px;
 }
@@ -80,6 +86,9 @@
 
 .children {
   margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .toggleSpacer {
@@ -160,17 +169,16 @@
   background: transparent;
   border: 1px solid #2d3139;
   border-radius: 4px;
-  color: #374151;
+  color: #f3f4f6;
   cursor: pointer;
   padding: 0;
   transition:
     background-color 160ms ease,
-    border-color 160ms ease,
     transform 160ms ease;
 }
 
 .chevronButton:hover {
-  border-color: #4b5563;
+  background: transparent;
 }
 
 .chevronButton:active {
