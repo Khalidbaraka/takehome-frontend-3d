@@ -1,17 +1,9 @@
-import React, { useState } from 'react'
-import { getNotificationCenter } from '../notification'
-import ThreeEngineController from '../3d/engine'
+import React from "react";
+import { useShapes } from "../shapes/ShapeProvider";
 
 const CountComponent: React.FC = () => {
-  const [count, setCount] = useState(0)
+  const { shapeCount } = useShapes();
+  return <h2>{shapeCount} objects in scene</h2>;
+};
 
-  getNotificationCenter().subscribe('shapeAdded', () => {
-    setCount(ThreeEngineController.getInstance().getObjectCount())
-  })
-  getNotificationCenter().subscribe('shapeRemoved', () => {
-    setCount(ThreeEngineController.getInstance().getObjectCount())
-  })
-  return <h2>{count} objects</h2>
-}
-
-export default CountComponent
+export default CountComponent;

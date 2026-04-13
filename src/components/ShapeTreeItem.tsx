@@ -1,18 +1,19 @@
 import type { PropsWithChildren } from "react";
-import type { Mesh } from "three";
 import styles from "./ShapeTree.module.css";
-import { getNotificationCenter } from "../notification";
+import { useShapes } from "../shapes/ShapeProvider";
 
 export default function ShapeTreeItem({
   children,
-  shape,
-}: PropsWithChildren<{ isSelected: boolean; shape: Mesh }>) {
+  shapeId,
+}: PropsWithChildren<{ shapeId: string }>) {
+  const { selectShape } = useShapes();
+
   return (
     <div
       className={styles.shapeItem}
-      data-testid={`shape-item-${shape.uuid}`}
+      data-testid={`shape-item-${shapeId}`}
       onClick={(e) => {
-        getNotificationCenter().notify("shapeSelected", shape);
+        selectShape(shapeId);
         e.stopPropagation();
       }}
     >
