@@ -12,3 +12,172 @@
   display: flex;
   flex-direction: column;
 }
+
+.emptyState {
+  border: 1px dashed #2d3139;
+  border-radius: 12px;
+  padding: 16px 14px;
+  color: #9ca3af;
+  background: rgb(255 255 255 / 0.02);
+}
+
+.emptyStateTitle {
+  margin: 0 0 4px;
+  color: #f3f4f6;
+  font-size: 0.9rem;
+}
+
+.emptyStateBody {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.shapeItem {
+  border-radius: 10px;
+  padding: 4px 6px;
+}
+
+.nodeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border-radius: 8px;
+  border: 1px solid #2d3139;
+  padding: 4px 6px;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.nodeHeader:hover {
+  background-color: #282c33;
+  border-color: #93c5fd;
+  box-shadow: inset 0 0 0 1px rgb(147 197 253 / 0.2);
+}
+
+.nodeHeaderSelected {
+  background-color: #036;
+  border-color: #93c5fd;
+  box-shadow: inset 0 0 0 1px rgb(147 197 253 / 0.2);
+}
+
+.nodeHeaderSelected:hover {
+  background-color: #036;
+  border-color: #93c5fd;
+  box-shadow: inset 0 0 0 1px rgb(147 197 253 / 0.2);
+}
+
+.nodeLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.children {
+  margin-left: 10px;
+}
+
+.toggleSpacer {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+}
+
+.colorDot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(15 23 42 / 0.12);
+}
+
+.shapeIcon {
+  width: 13px;
+  height: 13px;
+  color: #9ca3af;
+  flex: 0 0 auto;
+}
+
+.shapeTitle {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.nodeHeader:hover .deleteButton,
+.nodeHeader:focus-within .deleteButton {
+  opacity: 1;
+}
+
+.deleteButton:hover {
+  color: #dc2626;
+  background-color: #fee2e2;
+}
+
+.deleteButton:active {
+  transform: translateY(1px);
+}
+
+.deleteButton:focus-visible {
+  outline: 2px solid #fca5a5;
+  outline-offset: 2px;
+}
+
+.chevronButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border: 1px solid #2d3139;
+  border-radius: 4px;
+  color: #374151;
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.chevronButton:hover {
+  border-color: #4b5563;
+}
+
+.chevronButton:active {
+  transform: translateY(1px);
+}
+
+/* .chevronButton:focus-visible {
+  outline: 2px solid #7aa2ff;
+  outline-offset: 2px;
+} */

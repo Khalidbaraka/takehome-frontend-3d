@@ -4,7 +4,7 @@ import { Mesh } from 'three'
 export type Shape = 'sphere' | 'cube' | 'cylinder'
 
 export function buildShape(shape: Shape): Mesh {
-  const colors = [0xff0000, 0x00ff00, 0x0000ff]
+  const colors = [0xef4444, 0x22c55e, 0x3b82f6]
 
   const color = colors[Math.floor(Math.random() * colors.length)]
   switch (shape) {
