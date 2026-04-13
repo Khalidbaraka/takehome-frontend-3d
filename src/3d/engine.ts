@@ -1,217 +1,225 @@
 import {
   Color,
+  Mesh,
   Object3D,
   PerspectiveCamera,
   Scene,
   Vector3,
-  WebGLRenderer
-} from 'three'
-import { OrbitControls } from 'three/examples/jsm/Addons.js'
+  WebGLRenderer,
+} from "three";
+import { OrbitControls } from "three/examples/jsm/Addons.js";
 
 export default class ThreeEngineController {
-  private static instance?: ThreeEngineController
+  private static instance?: ThreeEngineController;
 
-  private scene = new Scene()
-  private camera?: PerspectiveCamera
-  private renderer?: WebGLRenderer
-  private controls?: OrbitControls
-  private isSceneInitialized: boolean = false
+  private scene = new Scene();
+  private camera?: PerspectiveCamera;
+  private renderer?: WebGLRenderer;
+  private controls?: OrbitControls;
+  private isSceneInitialized: boolean = false;
 
   private constructor() {}
 
   static getInstance() {
-    return (ThreeEngineController.instance ??= new ThreeEngineController())
+    return (ThreeEngineController.instance ??= new ThreeEngineController());
   }
 
   static dispose() {
-    ThreeEngineController.instance?.destroy()
-    ThreeEngineController.instance = undefined
+    ThreeEngineController.instance?.destroy();
+    ThreeEngineController.instance = undefined;
   }
 
   install(canvasElement: HTMLCanvasElement) {
     if (this.isSceneInitialized) {
-      console.warn('Scene is already initialized')
-      return
+      console.warn("Scene is already initialized");
+      return;
     }
 
-    this.scene = buildScene()
-    this.camera = buildCamera(canvasElement)
-    this.renderer = buildRenderer(canvasElement)
-    this.controls = buildControls(this.camera, canvasElement)
+    this.scene = buildScene();
+    this.camera = buildCamera(canvasElement);
+    this.renderer = buildRenderer(canvasElement);
+    this.controls = buildControls(this.camera, canvasElement);
 
-    this.controls.addEventListener('change', () => {
-      this.render()
-    })
+    // not sure i understand this listenser...
+    this.controls.addEventListener("change", () => {
+      this.render();
+    });
 
-    this.isSceneInitialized = true
+    this.isSceneInitialized = true;
 
-    this.updateSize(canvasElement)
+    this.updateSize(canvasElement);
   }
 
   clientToNdc({
     clientX,
-    clientY
+    clientY,
   }: {
-    clientX: number
-    clientY: number
+    clientX: number;
+    clientY: number;
   }): [number, number] {
     if (!this.renderer) {
-      throw new Error('Renderer is not initialized')
+      throw new Error("Renderer is not initialized");
     }
 
     const { left, top, width, height } =
-      this.renderer.domElement.getBoundingClientRect()
+      this.renderer.domElement.getBoundingClientRect();
 
-    const x = ((clientX - left) / width) * 2 - 1
-    const y = -((clientY - top) / height) * 2 + 1
+    const x = ((clientX - left) / width) * 2 - 1;
+    const y = -((clientY - top) / height) * 2 + 1;
 
-    return [x, y]
+    return [x, y];
   }
 
   getObjectsInScene() {
     if (!this.scene) {
-      throw new Error('Scene is not initialized')
+      throw new Error("Scene is not initialized");
     }
 
-    return this.scene.children
+    return this.scene.children;
   }
 
   getCamera() {
     if (!this.camera) {
-      throw new Error('Camera is not initialized')
+      throw new Error("Camera is not initialized");
     }
 
-    return this.camera
+    return this.camera;
   }
 
   render() {
     if (!this.isSceneInitialized) {
-      throw new Error('Scene should be initialized before rendering')
+      throw new Error("Scene should be initialized before rendering");
     }
 
     if (!this.scene || !this.camera || !this.renderer) {
       throw new Error(
-        'Scene, camera, renderer, and controls must be defined before rendering'
-      )
+        "Scene, camera, renderer, and controls must be defined before rendering",
+      );
     }
 
-    this.renderer.render(this.scene, this.camera)
+    this.renderer.render(this.scene, this.camera);
   }
 
   getObjectCount() {
     if (!this.scene) {
-      throw new Error('Scene is not initialized')
+      throw new Error("Scene is not initialized");
     }
-    let count = 0
-    this.scene.traverse(() => {
-      count++
-    })
-    return count
+    let count = 0;
+    this.scene.traverse((object) => {
+      if (object instanceof Mesh) {
+        count++;
+      }
+    });
+    return count;
   }
 
   updateSize(canvasElement: HTMLCanvasElement) {
     if (!this.camera) {
-      throw new Error('Camera is not initialized, skipping resize.')
+      throw new Error("Camera is not initialized, skipping resize.");
     }
 
     if (!this.renderer) {
-      throw new Error('Renderer is not initialized, skipping resize.')
+      throw new Error("Renderer is not initialized, skipping resize.");
     }
 
     adjustObjectsForCanvas(
       { renderer: this.renderer, camera: this.camera },
-      canvasElement
-    )
+      canvasElement,
+    );
   }
 
   addToScene(object: Object3D) {
     if (!this.scene) {
-      throw new Error('Scene is not initialized')
+      throw new Error("Scene is not initialized");
     }
 
-    this.scene.add(object)
+    this.scene.add(object);
   }
 
   removeFromScene(object: Object3D) {
     if (!this.scene) {
-      throw new Error('Scene is not initialized')
+      throw new Error("Scene is not initialized");
     }
 
-    this.scene.remove(object)
+    this.scene.remove(object);
   }
 
   private destroy() {
-    console.warn('Destroying Three Engine')
+    console.warn("Destroying Three Engine");
 
-    this.controls?.dispose()
-    this.renderer?.dispose()
-    this.scene?.clear()
-    this.camera?.clear()
+    this.controls?.dispose();
+    this.renderer?.dispose();
+    this.scene?.clear();
+    this.camera?.clear();
 
-    this.isSceneInitialized = false
+    this.isSceneInitialized = false;
   }
 }
 
 function buildScene() {
-  const scene = new Scene()
-  scene.background = new Color(0xffffff)
+  const scene = new Scene();
+  scene.background = new Color(0x1a1d23);
 
-  return scene
+  return scene;
 }
 
 function buildRenderer(canvasElement: HTMLCanvasElement) {
   const renderer = new WebGLRenderer({
     canvas: canvasElement,
-    antialias: true
-  })
+    antialias: true,
+  });
 
-  renderer.setClearColor(0xffffff, 1)
+  renderer.setClearColor(0x1a1d23, 1);
 
-  return renderer
+  return renderer;
 }
 
 function adjustObjectsForCanvas(
   { renderer, camera }: { renderer: WebGLRenderer; camera: PerspectiveCamera },
-  canvasElement: HTMLCanvasElement
+  canvasElement: HTMLCanvasElement,
 ) {
-  const { clientWidth, clientHeight } = canvasElement
+  const { clientWidth, clientHeight } = canvasElement;
   if (clientWidth === 0 || clientHeight === 0) {
-    console.warn('Canvas has zero dimensions, skipping resize.')
-    return
+    console.warn("Canvas has zero dimensions, skipping resize.");
+    return;
   }
 
-  camera.aspect = clientWidth / clientHeight
-  camera.updateProjectionMatrix()
+  camera.aspect = clientWidth / clientHeight;
+  camera.updateProjectionMatrix();
 
-  renderer.setSize(canvasElement.clientWidth, canvasElement.clientHeight, false)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setSize(
+    canvasElement.clientWidth,
+    canvasElement.clientHeight,
+    false,
+  );
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 }
 
 function buildCamera(canvasElement: HTMLCanvasElement) {
-  const { clientWidth, clientHeight } = canvasElement
-  const aspectRatio = clientWidth / clientHeight
+  const { clientWidth, clientHeight } = canvasElement;
+  const aspectRatio = clientWidth / clientHeight;
 
   const camera = new PerspectiveCamera(
     75,
     isNaN(aspectRatio) ? 1 : aspectRatio,
     0.1,
-    1000
-  )
-  camera.position.fromArray([10, 10, 10])
-  camera.lookAt(new Vector3(0, 0, 0))
+    1000,
+  );
+  camera.position.fromArray([10, 10, 10]);
+  camera.lookAt(new Vector3(0, 0, 0));
 
-  return camera
+  return camera;
 }
 
 function buildControls(
   camera: PerspectiveCamera,
-  canvasElement: HTMLCanvasElement
+  canvasElement: HTMLCanvasElement,
 ) {
-  const controls = new OrbitControls(camera, canvasElement)
-  controls.enableDamping = false
-  controls.minDistance = 1
-  controls.maxDistance = 20
-  controls.maxPolarAngle = Math.PI / 2
+  const controls = new OrbitControls(camera, canvasElement);
+  controls.enableDamping = false;
+  controls.minDistance = 1;
+  controls.maxDistance = 20;
+  controls.maxPolarAngle = Math.PI / 2;
 
-  return controls
+  return controls;
 }
