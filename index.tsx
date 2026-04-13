@@ -1,62 +1,70 @@
-import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { createMainViewController } from "./src/3d/MainViewController";
-import CountComponent from "./src/components/CountComponent";
-import { createShapeTree } from "./src/components/ShapeTree";
-import { createShapePanel } from "./src/components/ShapePanel";
-import { createLayout } from "./src/layout";
+import ShapeTree from "./src/components/ShapeTree";
+import ShapePanel from "./src/components/ShapePanel";
 import { resetNotificationCenter } from "./src/notification";
-import { createToolbar } from "./src/toolbar";
 import ThreeEngineController from "./src/3d/engine";
 import SceneCanvas from "./src/components/SceneCanvas";
+import Toolbar from "./src/toolbar";
+import { ShapeProvider, type ShapeActions } from "./src/shapes/ShapeProvider";
+import "./styles/app.css";
 
 export interface AppHandle {
-  controller: ReturnType<typeof createMainViewController>;
   cleanup: () => void;
+}
+
+function AppShell({
+  onReady,
+}: {
+  onReady: (actions: ShapeActions) => void;
+}) {
+  return (
+    <ShapeProvider onReady={onReady}>
+      <nav className="top-toolbar">
+        <Toolbar />
+      </nav>
+      <div className="main-container">
+        <aside id="shape-panel" className="left-bar">
+          <ShapePanel />
+        </aside>
+        <main id="main-view" className="center-area">
+          <SceneCanvas />
+        </main>
+        <aside id="shape-properties" className="right-bar">
+          <ShapeTree />
+        </aside>
+      </div>
+    </ShapeProvider>
+  );
 }
 
 export function initializeApp(root: HTMLElement = document.body): AppHandle {
   root.innerHTML = "";
-  createLayout(root);
-  const shapeController = createMainViewController();
+  let actions: ShapeActions | undefined;
 
   const handleDeleteKey = (event: KeyboardEvent) => {
     if (event.key === "Delete" || event.key === "Backspace") {
-      shapeController.deleteSelectedShape();
+      actions?.deleteSelectedShape();
     }
   };
   window.addEventListener("keydown", handleDeleteKey);
 
-  createToolbar(root);
-  const reactToolbarRoot = document.getElementById("react-toolbar-root");
-  let toolbarRoot: Root | undefined;
-  if (reactToolbarRoot) {
-    toolbarRoot = createRoot(reactToolbarRoot);
-    flushSync(() => {
-      toolbarRoot!.render(<CountComponent />);
-    });
-  }
-  const reactCanvasRoot = document.getElementById("main-view");
-  let canvasRoot: Root | undefined;
-  if (reactCanvasRoot) {
-    canvasRoot = createRoot(reactCanvasRoot);
-    flushSync(() => {
-      canvasRoot!.render(
-        <SceneCanvas controller={shapeController} />,
-      );
-    });
-  }
-
-  createShapePanel(shapeController);
-  createShapeTree(shapeController);
+  const appRoot: Root = createRoot(root);
+  flushSync(() => {
+    appRoot.render(
+      <AppShell
+        onReady={(nextActions) => {
+          actions = nextActions;
+        }}
+      />,
+    );
+  });
 
   return {
-    controller: shapeController,
     cleanup() {
       window.removeEventListener("keydown", handleDeleteKey);
-      toolbarRoot?.unmount();
-      canvasRoot?.unmount();
+      appRoot.unmount();
       ThreeEngineController.dispose();
       resetNotificationCenter();
       root.innerHTML = "";
@@ -64,5 +72,4 @@ export function initializeApp(root: HTMLElement = document.body): AppHandle {
   };
 }
 
-export const app =
-  import.meta.env.MODE === "test" ? undefined : initializeApp();
+export const app = import.meta.env.MODE === "test" ? undefined : initializeApp();
