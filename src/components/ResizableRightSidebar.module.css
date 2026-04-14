@@ -1,0 +1,17 @@
+.rightBarResizable {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.rightBarResizeHandle {
+  position: absolute;
+  left: -6px;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 2;
+}

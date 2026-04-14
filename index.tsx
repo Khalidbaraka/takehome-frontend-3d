@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import ShapeTree from "./src/components/ShapeTree";
 import ShapePanel from "./src/components/ShapePanel";
+import ResizableRightSidebar from "./src/components/ResizableRightSidebar";
 import { resetNotificationCenter } from "./src/notification";
 import ThreeEngineController from "./src/3d/engine";
 import SceneCanvas from "./src/components/SceneCanvas";
@@ -31,9 +32,9 @@ function AppShell({
         <main id="main-view" className="center-area">
           <SceneCanvas />
         </main>
-        <aside id="shape-properties" className="right-bar">
+        <ResizableRightSidebar>
           <ShapeTree />
-        </aside>
+        </ResizableRightSidebar>
       </div>
     </ShapeProvider>
   );
