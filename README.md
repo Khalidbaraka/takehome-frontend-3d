@@ -65,6 +65,10 @@ We don't expect you to build everything from scratch, feel free to use libraries
 
 We encourage you to document an explanation of your approach to tackle this take home. It can be in any format you prefer (i.e. text, video, audio), just make sure we have access to it. If you do a video or audio try to keep it under 5 minutes.
 
+## AI Usage Disclaimer
+
+I used OpenAI GPT-5.4 selectively for brainstorming and code review. I implemented the changes myself and verified them in the project.
+
 ## Contact
 
 Feel free to reach out the recruiter or the hiring manager if you have any questions or need clarifications regarding the project. Good luck, and we look forward to seeing your work!
