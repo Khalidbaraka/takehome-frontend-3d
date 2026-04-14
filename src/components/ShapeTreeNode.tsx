@@ -41,6 +41,7 @@ export default function ShapeTreeNode({
     ...(selectedHeaderStyle ?? {}),
     "--tree-depth": depth,
   } as CSSProperties;
+  const shapeLabel = `${shape.type} ${shape.displayNumber}`;
 
   const labelContent = (
     <div className={styles.nodeLabel}>
@@ -51,7 +52,9 @@ export default function ShapeTreeNode({
         style={{ backgroundColor: shape.color }}
       />
       <ShapeTypeIcon type={shape.type} />
-      <span className={styles.shapeTitle}>{`${shape.type} ${shape.displayNumber}`}</span>
+      <span className={styles.shapeTitle} title={shapeLabel}>
+        {shapeLabel}
+      </span>
     </div>
   );
 
