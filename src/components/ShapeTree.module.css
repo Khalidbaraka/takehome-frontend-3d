@@ -38,24 +38,35 @@
 }
 
 .shapeItem {
+  --tree-depth: 0;
+  --tree-indent-step: 18px;
+  --tree-guide-color: rgb(148 163 184 / 0.14);
+  position: relative;
   min-width: 0;
   border-radius: 10px;
-  padding: 4px 6px;
+  padding: 2px 0;
 }
 
 .nodeHeader {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
   min-width: 0;
   border-radius: 8px;
-  border: 1px solid #2d3139;
+  border: 1px solid transparent;
   padding: 4px 6px;
   transition:
     background-color 160ms ease,
     box-shadow 160ms ease,
     border-color 160ms ease;
+}
+
+.nodeHeader > * {
+  position: relative;
+  z-index: 3;
 }
 
 .nodeHeader:hover {
@@ -84,16 +95,38 @@
   flex: 1;
 }
 
+.nodeHeaderIndented {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  max-width: 100%;
+  padding-left: calc(var(--tree-depth) * var(--tree-indent-step));
+}
+
 .children {
-  margin-left: 10px;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+.children::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  left: calc(var(--tree-depth) * var(--tree-indent-step) + 14px);
+  width: 1px;
+  background: var(--tree-guide-color);
+  z-index: 2;
+  pointer-events: none;
+}
+
 .toggleSpacer {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: inline-block;
 }
 
@@ -115,6 +148,8 @@
 .shapeTitle {
   display: block;
   min-width: 0;
+  flex: 1;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -164,8 +199,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   background: transparent;
   border: 1px solid #2d3139;
   border-radius: 4px;

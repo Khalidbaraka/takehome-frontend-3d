@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import Accordion from "./Accordion";
 import ShapeTypeIcon from "./ShapeTypeIcon";
 import ShapeTreeItem from "./ShapeTreeItem";
 import styles from "./ShapeTree.module.css";
 import { useShapes } from "../shapes/ShapeProvider";
 
-export default function ShapeTreeNode({ shapeId }: { shapeId: string }) {
+export default function ShapeTreeNode({
+  shapeId,
+  depth = 0,
+}: {
+  shapeId: string;
+  depth?: number;
+}) {
   const { getShapeById, selectedShapeId, deleteShape } = useShapes();
   const shape = getShapeById(shapeId);
 
@@ -30,6 +37,10 @@ export default function ShapeTreeNode({ shapeId }: { shapeId: string }) {
         boxShadow: "inset 0 0 0 1px rgb(147 197 253 / 0.2)",
       }
     : undefined;
+  const rowStyle = {
+    ...(selectedHeaderStyle ?? {}),
+    "--tree-depth": depth,
+  } as CSSProperties;
 
   const labelContent = (
     <div className={styles.nodeLabel}>
@@ -72,7 +83,7 @@ export default function ShapeTreeNode({ shapeId }: { shapeId: string }) {
   );
 
   return (
-    <ShapeTreeItem key={`${shape.id}-${shape.displayNumber}`} shapeId={shape.id}>
+    <ShapeTreeItem key={`${shape.id}-${shape.displayNumber}`} shapeId={shape.id} depth={depth}>
       {hasChildren ? (
         <Accordion
           open={isExpanded}
@@ -83,7 +94,8 @@ export default function ShapeTreeNode({ shapeId }: { shapeId: string }) {
           headerClassName={`${styles.nodeHeader} ${
             isSelected ? styles.nodeHeaderSelected : ""
           }`}
-          headerStyle={selectedHeaderStyle}
+          headerStyle={rowStyle}
+          labelGroupClassName={styles.nodeHeaderIndented}
           onToggle={(event) => {
             event.stopPropagation();
             setIsExpanded((current) => !current);
@@ -92,7 +104,7 @@ export default function ShapeTreeNode({ shapeId }: { shapeId: string }) {
         >
           <div className={styles.children} data-testid={`shape-children-${shape.id}`}>
             {shape.childIds.map((childId) => (
-              <ShapeTreeNode key={childId} shapeId={childId} />
+              <ShapeTreeNode key={childId} shapeId={childId} depth={depth + 1} />
             ))}
           </div>
         </Accordion>
@@ -103,9 +115,9 @@ export default function ShapeTreeNode({ shapeId }: { shapeId: string }) {
           className={`${styles.nodeHeader} ${
             isSelected ? styles.nodeHeaderSelected : ""
           }`}
-          style={selectedHeaderStyle}
+          style={rowStyle}
         >
-          {labelContent}
+          <div className={styles.nodeHeaderIndented}>{labelContent}</div>
           {deleteButton}
         </div>
       )}

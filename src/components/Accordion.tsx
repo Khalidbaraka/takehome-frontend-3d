@@ -11,6 +11,7 @@ const Accordion: React.FC<{
   headerTestId?: string;
   headerStyle?: React.CSSProperties;
   headerSelected?: boolean;
+  labelGroupClassName?: string;
   children?: React.ReactNode;
 }> = ({
   open,
@@ -22,6 +23,7 @@ const Accordion: React.FC<{
   headerTestId,
   headerStyle,
   headerSelected,
+  labelGroupClassName,
   children,
 }) => {
   return (
@@ -32,7 +34,7 @@ const Accordion: React.FC<{
         data-selected={headerSelected ? "true" : "false"}
         style={headerStyle}
       >
-        <div className={styles.labelGroup}>
+        <div className={`${styles.labelGroup} ${labelGroupClassName ?? ""}`}>
           <ChevronIcon
             dataTestId={toggleTestId}
             direction={open ? "down" : "right"}
