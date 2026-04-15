@@ -98,6 +98,7 @@ The solution was implemented in stages:
 4. route canvas selection through the provider-owned flow as well
 5. keep Three.js as the rendering layer instead of the main UI state model
 6. remove the legacy `MainViewController` and notification-center path once the provider-owned flow was fully in place
+7. add a small `GlobalShortcuts` component inside the React tree so keyboard actions stay with the provider-owned app flow
 
 Big O and scalability impact:
 
@@ -122,6 +123,7 @@ Problems:
 - long labels could truncate awkwardly
 - guide lines and selection styling needed refinement
 - every row consumed broad shared state directly, which made rerender scope wider than necessary
+- scene-driven selection and tree-driven selection did not fully help the user navigate between the two views
 
 The solution was iterative:
 
@@ -130,16 +132,17 @@ The solution was iterative:
 3. split the tree into smaller focused pieces such as item, node, empty-state, and accordion-driven nested rendering
 4. move tree context reads upward into `ShapeTree`
 5. pass row-specific props down to `ShapeTreeNode`
-6. memoize tree rows so unchanged branches can be skipped more easily
+6. remove direct broad context consumption from each row, then simplify the row implementation again once memoization did not show a strong payoff in profiling/debugging
+7. auto-expand the selected branch and scroll the selected row into view when selection comes from the scene
 
 Big O and scalability impact:
 
 - before: selection and tree updates were more likely to cause broad rerender fan-out because each row subscribed directly to shared context
-- after: row components receive narrower props and use memoization, which reduces unnecessary rerenders even though rendering a visible tree is still proportional to the amount of UI shown
+- after: row components receive narrower props, which makes data flow easier to control even though rendering a visible tree is still proportional to the amount of UI shown
 
 Scalability outlook:
 
-- at 1,000 shapes, the tree should hold up much better than the original version because state reads are indexed and row rerenders are narrower
+- at 1,000 shapes, the tree should hold up much better than the original version because state reads are indexed and row updates are narrower
 - at 10,000 shapes, the main remaining pressure is not count lookup anymore, but the cost of rendering and interacting with a very large nested tree and scene
 
 ### 5. Rendering quality
@@ -150,8 +153,24 @@ The solution was straightforward:
 
 1. improve scene lighting
 2. switch to shaded materials
+3. reuse shared geometry by shape type and shared materials by color when creating meshes
+4. move the scene to render-on-demand instead of running a continuous render loop when nothing changed
 
-This was mainly a readability improvement rather than a complexity change, but it mattered for usability because selecting and understanding shapes became visually easier.
+This started as a readability improvement, and later became a more explicit rendering-efficiency improvement as shape count grew.
+
+The scene interaction flow was also improved so selection now works as navigation:
+
+1. selecting from the tree focuses the camera on the chosen shape instead of only changing highlight state
+2. selecting from the scene reveals the matching tree row by opening the selected branch and scrolling it into view
+3. reset view was added so camera focus is useful without trapping the user in a zoomed-in state
+
+Scalability impact:
+
+- before: creating many shapes also created many duplicate geometry and material objects
+- before: the scene also rendered continuously even when nothing in the viewport had changed
+- after: each new shape still creates a new `Mesh`, but it reuses the existing geometry for its type and the existing material for its color
+- after: the scene only requests a redraw when selection, resize, controls, or scene contents actually change
+- at 10,000 shapes this reduces unnecessary CPU, memory, and GPU-side object churn during shape creation, and it avoids wasting frames when the scene is idle
 
 ### 6. Sidebar usability and layout polish
 
@@ -178,6 +197,8 @@ At around 10,000 shapes, the app would still likely begin to feel pressure, but 
 
 - rendering a very large nested DOM tree is still expensive
 - scene interaction still scales with the number of scene objects involved
+- shape creation is now cheaper than before because geometry and material allocation are shared, but mesh count still grows linearly
+- idle rendering is cheaper than before because the scene no longer redraws constantly
 - large hierarchy changes still require real work, even with indexed state
 
 So the main improvement is not that the app becomes magically cheap at 10,000 shapes. The improvement is that the expensive parts are now more intentional and localized, instead of being mixed together with correctness bugs, repeated traversal, and overly broad subscriptions.
@@ -194,6 +215,7 @@ After correctness and state flow were stabilized, the UI was improved to make th
 - improved tree scrolling behavior so nesting does not create awkward overflow behavior
 - added a tooltip for truncated tree labels so deeply nested items still expose their full name
 - added lighting and shaded materials to improve scene readability
+- synchronized scene selection with tree navigation and added reset-view behavior
 
 Tradeoff:
 
@@ -211,10 +233,11 @@ What it achieves:
 - tests added for the main flows
 - app state moved into a dedicated provider
 - single React tree instead of fragmented UI mounting
+- keyboard shortcuts handled inside the React tree through a small `GlobalShortcuts` component
 - legacy notification/controller state flow removed from the active app path
 - indexed shape state now sits between the UI and the Three.js scene
 - resizable right sidebar added for better tree usability
-- improved scene rendering and tree usability
+- improved scene rendering, scene focus behavior, and tree usability
 
 Why this approach was chosen:
 

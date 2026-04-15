@@ -38,9 +38,19 @@ type ShapeContextValue = {
 
 export type ShapeActions = Pick<
   ShapeContextValue,
-  "createShape" | "deleteShape" | "selectShape" | "selectShapeFromCanvas" | "resetView"
+  | "createShape"
+  | "deleteShape"
+  | "selectShape"
+  | "selectShapeFromCanvas"
+  | "resetView"
 > & {
   deleteSelectedShape: () => void;
+};
+
+type MaterialWithOptionalColor = {
+  color?: {
+    getStyle: () => string;
+  };
 };
 
 const ShapeContext = createContext<ShapeContextValue | null>(null);
@@ -175,9 +185,7 @@ export function ShapeProvider({ children }: PropsWithChildren) {
       const rootMeshes = shapeState.rootShapeIds
         .map((shapeId) => shapeState.meshById.get(shapeId))
         .filter((mesh): mesh is Mesh => Boolean(mesh));
-      const intersections = raycasterRef.current.getIntersections(
-        rootMeshes,
-      );
+      const intersections = raycasterRef.current.getIntersections(rootMeshes);
       const mesh = (intersections[0]?.object as Mesh | undefined) ?? null;
       applySelection(mesh);
       if (mesh) {
@@ -400,10 +408,7 @@ function getMeshColor(mesh: Mesh) {
   const material = Array.isArray(mesh.material)
     ? mesh.material[0]
     : mesh.material;
-  return (
-    (material as { color?: { getStyle: () => string } }).color?.getStyle() ??
-    "unknown"
-  );
+  return (material as MaterialWithOptionalColor).color?.getStyle() ?? "unknown";
 }
 
 function randomPosition() {
