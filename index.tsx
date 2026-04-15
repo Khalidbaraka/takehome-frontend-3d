@@ -4,7 +4,6 @@ import type { Root } from "react-dom/client";
 import ShapeTree from "./src/components/ShapeTree";
 import ShapePanel from "./src/components/ShapePanel";
 import ResizableRightSidebar from "./src/components/ResizableRightSidebar";
-import { resetNotificationCenter } from "./src/notification";
 import ThreeEngineController from "./src/3d/engine";
 import SceneCanvas from "./src/components/SceneCanvas";
 import Toolbar from "./src/toolbar";
@@ -67,7 +66,6 @@ export function initializeApp(root: HTMLElement = document.body): AppHandle {
       window.removeEventListener("keydown", handleDeleteKey);
       appRoot.unmount();
       ThreeEngineController.dispose();
-      resetNotificationCenter();
       root.innerHTML = "";
     },
   };
