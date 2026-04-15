@@ -4,7 +4,7 @@ import CountComponent from "./components/CountComponent";
 import { useShapes } from "./shapes/ShapeProvider";
 
 export default function Toolbar() {
-  const { projectName, setProjectName } = useShapes();
+  const { projectName, resetView, setProjectName } = useShapes();
   const [draftName, setDraftName] = useState(projectName);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -77,6 +77,14 @@ export default function Toolbar() {
           </div>
         )}
       </div>
+      <button
+        aria-label="Reset scene view"
+        className="toolbar-secondary-button"
+        type="button"
+        onClick={resetView}
+      >
+        Reset View
+      </button>
       <div id="react-toolbar-root">
         <CountComponent />
       </div>

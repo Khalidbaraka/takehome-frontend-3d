@@ -3,31 +3,28 @@ import { Mesh } from "three";
 
 export type Shape = "sphere" | "cube" | "cylinder";
 
+const colors = [0xef4444, 0x22c55e, 0x3b82f6];
+
+const geometryByShape: Record<Shape, THREE.BufferGeometry> = {
+  sphere: new THREE.SphereGeometry(1, 32, 32),
+  cube: new THREE.BoxGeometry(1, 1, 1),
+  cylinder: new THREE.CylinderGeometry(1, 1, 2, 32),
+};
+
+const materialByColor = new Map<number, THREE.MeshStandardMaterial>();
+
 export function buildShape(shape: Shape): Mesh {
-  const colors = [0xef4444, 0x22c55e, 0x3b82f6];
-
   const color = colors[Math.floor(Math.random() * colors.length)];
-  const material = new THREE.MeshStandardMaterial({
-    color,
-    roughness: 0.35,
-    metalness: 0.05,
-  });
+  let material = materialByColor.get(color);
 
-  switch (shape) {
-    case "sphere":
-      return new Mesh(
-        new THREE.SphereGeometry(1, 32, 32),
-        material,
-      );
-    case "cube":
-      return new Mesh(
-        new THREE.BoxGeometry(1, 1, 1),
-        material,
-      );
-    case "cylinder":
-      return new Mesh(
-        new THREE.CylinderGeometry(1, 1, 2, 32),
-        material,
-      );
+  if (!material) {
+    material = new THREE.MeshStandardMaterial({
+      color,
+      roughness: 0.35,
+      metalness: 0.05,
+    });
+    materialByColor.set(color, material);
   }
+
+  return new Mesh(geometryByShape[shape], material);
 }

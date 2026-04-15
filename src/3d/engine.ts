@@ -1,9 +1,9 @@
 import {
   AmbientLight,
+  Box3,
   Color,
   DirectionalLight,
   HemisphereLight,
-  Mesh,
   Object3D,
   PerspectiveCamera,
   Scene,
@@ -12,6 +12,10 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 
+const DEFAULT_CAMERA_POSITION = new Vector3(10, 10, 10);
+const DEFAULT_CAMERA_TARGET = new Vector3(0, 0, 0);
+const CAMERA_ANIMATION_DURATION_MS = 280;
+
 export default class ThreeEngineController {
   private static instance?: ThreeEngineController;
 
@@ -19,8 +23,10 @@ export default class ThreeEngineController {
   private camera?: PerspectiveCamera;
   private renderer?: WebGLRenderer;
   private controls?: OrbitControls;
-  private objectCount = 0;
   private isSceneInitialized: boolean = false;
+  private frameId: number | null = null;
+  private cameraAnimationFrameId: number | null = null;
+  private isFocusedView = false;
 
   private constructor() {}
 
@@ -44,14 +50,14 @@ export default class ThreeEngineController {
     this.renderer = buildRenderer(canvasElement);
     this.controls = buildControls(this.camera, canvasElement);
 
-    // not sure i understand this listenser...
     this.controls.addEventListener("change", () => {
-      this.render();
+      this.requestRender();
     });
 
     this.isSceneInitialized = true;
 
     this.updateSize(canvasElement);
+    this.requestRender();
   }
 
   clientToNdc({
@@ -104,8 +110,56 @@ export default class ThreeEngineController {
     this.renderer.render(this.scene, this.camera);
   }
 
-  getObjectCount() {
-    return this.objectCount;
+  focusObject(object: Object3D) {
+    if (!this.camera || !this.controls) {
+      throw new Error("Camera and controls must be initialized before focusing");
+    }
+
+    const box = new Box3().setFromObject(object);
+    const center = new Vector3();
+    const size = new Vector3();
+
+    if (box.isEmpty()) {
+      object.getWorldPosition(center);
+      size.setScalar(1);
+    } else {
+      box.getCenter(center);
+      box.getSize(size);
+    }
+
+    const currentOffset = this.camera.position.clone().sub(this.controls.target);
+    const direction = currentOffset.lengthSq() > 0
+      ? currentOffset.normalize()
+      : new Vector3(1, 1, 1).normalize();
+    const radius = Math.max(size.length() * 0.5, 1);
+    const distance = Math.max(radius * 6, this.controls.minDistance + radius * 3);
+
+    this.isFocusedView = true;
+    this.animateCamera(center.clone().add(direction.multiplyScalar(distance)), center);
+  }
+
+  resetView() {
+    if (!this.camera || !this.controls) {
+      throw new Error("Camera and controls must be initialized before resetting view");
+    }
+
+    this.isFocusedView = false;
+    this.animateCamera(DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET);
+  }
+
+  hasFocusedView() {
+    return this.isFocusedView;
+  }
+
+  requestRender() {
+    if (!this.isSceneInitialized || this.frameId !== null) {
+      return;
+    }
+
+    this.frameId = requestAnimationFrame(() => {
+      this.frameId = null;
+      this.render();
+    });
   }
 
   updateSize(canvasElement: HTMLCanvasElement) {
@@ -121,6 +175,7 @@ export default class ThreeEngineController {
       { renderer: this.renderer, camera: this.camera },
       canvasElement,
     );
+    this.requestRender();
   }
 
   addToScene(object: Object3D) {
@@ -129,34 +184,64 @@ export default class ThreeEngineController {
     }
 
     this.scene.add(object);
-  }
-
-  removeFromScene(object: Object3D) {
-    if (!this.scene) {
-      throw new Error("Scene is not initialized");
-    }
-
-    this.scene.remove(object);
-  }
-
-  trackAddedObject(object: Object3D) {
-    this.objectCount += countMeshes(object);
-  }
-
-  trackRemovedObject(object: Object3D) {
-    this.objectCount = Math.max(0, this.objectCount - countMeshes(object));
+    this.requestRender();
   }
 
   private destroy() {
     console.warn("Destroying Three Engine");
 
+    if (this.frameId !== null) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+    if (this.cameraAnimationFrameId !== null) {
+      cancelAnimationFrame(this.cameraAnimationFrameId);
+      this.cameraAnimationFrameId = null;
+    }
     this.controls?.dispose();
     this.renderer?.dispose();
     this.scene?.clear();
     this.camera?.clear();
-    this.objectCount = 0;
+    this.isFocusedView = false;
 
     this.isSceneInitialized = false;
+  }
+
+  private animateCamera(nextPosition: Vector3, nextTarget: Vector3) {
+    if (!this.camera || !this.controls) {
+      throw new Error("Camera and controls must be initialized before animating");
+    }
+
+    if (this.cameraAnimationFrameId !== null) {
+      cancelAnimationFrame(this.cameraAnimationFrameId);
+      this.cameraAnimationFrameId = null;
+    }
+
+    const startPosition = this.camera.position.clone();
+    const startTarget = this.controls.target.clone();
+    const startedAt = performance.now();
+
+    const tick = (now: number) => {
+      if (!this.camera || !this.controls) {
+        return;
+      }
+
+      const progress = Math.min((now - startedAt) / CAMERA_ANIMATION_DURATION_MS, 1);
+      const eased = easeInOutCubic(progress);
+
+      this.camera.position.lerpVectors(startPosition, nextPosition, eased);
+      this.controls.target.lerpVectors(startTarget, nextTarget, eased);
+      this.controls.update();
+      this.requestRender();
+
+      if (progress < 1) {
+        this.cameraAnimationFrameId = requestAnimationFrame(tick);
+      } else {
+        this.cameraAnimationFrameId = null;
+      }
+    };
+
+    this.cameraAnimationFrameId = requestAnimationFrame(tick);
   }
 }
 
@@ -220,8 +305,8 @@ function buildCamera(canvasElement: HTMLCanvasElement) {
     0.1,
     1000,
   );
-  camera.position.fromArray([10, 10, 10]);
-  camera.lookAt(new Vector3(0, 0, 0));
+  camera.position.copy(DEFAULT_CAMERA_POSITION);
+  camera.lookAt(DEFAULT_CAMERA_TARGET);
 
   return camera;
 }
@@ -239,12 +324,8 @@ function buildControls(
   return controls;
 }
 
-function countMeshes(object: Object3D) {
-  let count = 0;
-  object.traverse((child) => {
-    if (child instanceof Mesh) {
-      count++;
-    }
-  });
-  return count;
+function easeInOutCubic(value: number) {
+  return value < 0.5
+    ? 4 * value * value * value
+    : 1 - Math.pow(-2 * value + 2, 3) / 2;
 }

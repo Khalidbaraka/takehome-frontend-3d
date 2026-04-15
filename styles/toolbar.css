@@ -76,6 +76,28 @@
   color: #60a5fa;
 }
 
+.toolbar-secondary-button {
+  padding: 10px 14px;
+  border: 1px solid #2d3139;
+  border-radius: 10px;
+  background: #22262d;
+  color: #cbd5e1;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.toolbar-secondary-button:hover {
+  color: #f3f4f6;
+  background: #2a2e36;
+  border-color: #3a404a;
+}
+
 #react-toolbar-root {
   margin-left: auto;
 }

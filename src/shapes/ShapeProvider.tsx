@@ -33,11 +33,12 @@ type ShapeContextValue = {
   deleteSelectedShape: () => void;
   selectShape: (shapeId: string | null) => void;
   selectShapeFromCanvas: (point: [number, number]) => void;
+  resetView: () => void;
 };
 
 export type ShapeActions = Pick<
   ShapeContextValue,
-  "createShape" | "deleteShape" | "selectShape" | "selectShapeFromCanvas"
+  "createShape" | "deleteShape" | "selectShape" | "selectShapeFromCanvas" | "resetView"
 > & {
   deleteSelectedShape: () => void;
 };
@@ -48,9 +49,7 @@ const ShapeContext = createContext<ShapeContextValue | null>(null);
  * ShapeProvider is the source of truth for app/UI state.
  * It owns the normalized shape tree and uses Three.js only as the rendering layer.
  */
-export function ShapeProvider({
-  children,
-}: PropsWithChildren) {
+export function ShapeProvider({ children }: PropsWithChildren) {
   const engine = ThreeEngineController.getInstance();
   const [projectName, setProjectName] = useState("Untitled Project");
   const [shapeState, setShapeState] = useState(() =>
@@ -59,7 +58,14 @@ export function ShapeProvider({
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const selectedMeshRef = useRef<Mesh | null>(null);
   const raycasterRef = useRef(new RayCastService());
-  const highlightMaterialRef = useRef(new MeshBasicMaterial({ color: 0xffff00 }));
+  const highlightMaterialRef = useRef(
+    new MeshBasicMaterial({
+      color: 0xffff00,
+      depthTest: false,
+      transparent: true,
+      opacity: 0.95,
+    }),
+  );
 
   const restoreMeshMaterial = useCallback((mesh: Mesh | null) => {
     if (!mesh) {
@@ -84,6 +90,7 @@ export function ShapeProvider({
       if (!mesh) {
         selectedMeshRef.current = null;
         setSelectedShapeId(null);
+        engine.requestRender();
         return;
       }
 
@@ -94,8 +101,9 @@ export function ShapeProvider({
       mesh.material = highlightMaterialRef.current;
       selectedMeshRef.current = mesh;
       setSelectedShapeId(mesh.uuid);
+      engine.requestRender();
     },
-    [restoreMeshMaterial],
+    [engine, restoreMeshMaterial],
   );
 
   const getShapeById = useCallback(
@@ -107,7 +115,9 @@ export function ShapeProvider({
     (shape: Shape) => {
       const mesh = buildShape(shape);
       const parentId = selectedShapeId;
-      const parentMesh = parentId ? shapeState.meshById.get(parentId) ?? null : null;
+      const parentMesh = parentId
+        ? (shapeState.meshById.get(parentId) ?? null)
+        : null;
 
       mesh.userData.displayNumber = getNextDisplayNumber(shapeState, parentId);
       mesh.position.copy(randomPosition());
@@ -118,7 +128,7 @@ export function ShapeProvider({
         engine.addToScene(mesh);
       }
 
-      engine.trackAddedObject(mesh);
+      engine.requestRender();
       setShapeState((current) => addShapeNode(current, mesh, parentId));
     },
     [engine, selectedShapeId, shapeState.meshById],
@@ -134,33 +144,47 @@ export function ShapeProvider({
       const idsToDelete = collectMeshSubtreeIds(mesh);
       if (selectedShapeId && idsToDelete.includes(selectedShapeId)) {
         applySelection(null);
+        if (engine.hasFocusedView()) {
+          engine.resetView();
+        }
       }
 
       mesh.parent?.remove(mesh);
-      engine.trackRemovedObject(mesh);
-      setShapeState((current) => removeShapeNode(current, shapeId, idsToDelete));
+      engine.requestRender();
+      setShapeState((current) =>
+        removeShapeNode(current, shapeId, idsToDelete),
+      );
     },
     [applySelection, engine, selectedShapeId, shapeState.meshById],
   );
 
   const selectShape = useCallback(
     (shapeId: string | null) => {
-      const mesh = shapeId ? shapeState.meshById.get(shapeId) ?? null : null;
+      const mesh = shapeId ? (shapeState.meshById.get(shapeId) ?? null) : null;
       applySelection(mesh);
+      if (mesh) {
+        engine.focusObject(mesh);
+      }
     },
-    [applySelection, shapeState.meshById],
+    [applySelection, engine, shapeState.meshById],
   );
 
   const selectShapeFromCanvas = useCallback(
     (point: [number, number]) => {
       raycasterRef.current.update(point, engine.getCamera());
+      const rootMeshes = shapeState.rootShapeIds
+        .map((shapeId) => shapeState.meshById.get(shapeId))
+        .filter((mesh): mesh is Mesh => Boolean(mesh));
       const intersections = raycasterRef.current.getIntersections(
-        engine.getObjectsInScene(),
+        rootMeshes,
       );
       const mesh = (intersections[0]?.object as Mesh | undefined) ?? null;
       applySelection(mesh);
+      if (mesh) {
+        engine.focusObject(mesh);
+      }
     },
-    [applySelection, engine],
+    [applySelection, engine, shapeState.meshById, shapeState.rootShapeIds],
   );
 
   const deleteSelectedShape = useCallback(() => {
@@ -168,6 +192,10 @@ export function ShapeProvider({
       deleteShape(selectedShapeId);
     }
   }, [deleteShape, selectedShapeId]);
+
+  const resetView = useCallback(() => {
+    engine.resetView();
+  }, [engine]);
 
   const value = useMemo<ShapeContextValue>(
     () => ({
@@ -182,6 +210,7 @@ export function ShapeProvider({
       deleteSelectedShape,
       selectShape,
       selectShapeFromCanvas,
+      resetView,
     }),
     [
       projectName,
@@ -193,10 +222,13 @@ export function ShapeProvider({
       deleteSelectedShape,
       selectShape,
       selectShapeFromCanvas,
+      resetView,
     ],
   );
 
-  return <ShapeContext.Provider value={value}>{children}</ShapeContext.Provider>;
+  return (
+    <ShapeContext.Provider value={value}>{children}</ShapeContext.Provider>
+  );
 }
 
 export function useShapes() {
@@ -251,7 +283,11 @@ function buildShapeState(rootMeshes: Mesh[]): ShapeState {
   };
 }
 
-function addShapeNode(current: ShapeState, mesh: Mesh, parentId: string | null): ShapeState {
+function addShapeNode(
+  current: ShapeState,
+  mesh: Mesh,
+  parentId: string | null,
+): ShapeState {
   const shapesById = new Map(current.shapesById);
   const meshById = new Map(current.meshById);
   const rootShapeIds = [...current.rootShapeIds];
@@ -290,7 +326,7 @@ function addShapeNode(current: ShapeState, mesh: Mesh, parentId: string | null):
 
 function getNextDisplayNumber(state: ShapeState, parentId: string | null) {
   const siblingIds = parentId
-    ? state.shapesById.get(parentId)?.childIds ?? []
+    ? (state.shapesById.get(parentId)?.childIds ?? [])
     : state.rootShapeIds;
 
   return (
@@ -315,7 +351,9 @@ function removeShapeNode(
     meshById.delete(id);
   });
 
-  let rootShapeIds = current.rootShapeIds.filter((id) => !idsToDelete.includes(id));
+  let rootShapeIds = current.rootShapeIds.filter(
+    (id) => !idsToDelete.includes(id),
+  );
 
   if (shape?.parentId) {
     const parent = shapesById.get(shape.parentId);
@@ -359,9 +397,12 @@ function getShapeType(mesh: Mesh): Shape {
 }
 
 function getMeshColor(mesh: Mesh) {
-  const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  const material = Array.isArray(mesh.material)
+    ? mesh.material[0]
+    : mesh.material;
   return (
-    (material as { color?: { getStyle: () => string } }).color?.getStyle() ?? "unknown"
+    (material as { color?: { getStyle: () => string } }).color?.getStyle() ??
+    "unknown"
   );
 }
 
