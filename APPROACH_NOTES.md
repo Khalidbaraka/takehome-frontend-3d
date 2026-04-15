@@ -184,13 +184,46 @@ The solution was:
 
 This was mainly a usability improvement rather than a complexity change, but it helps at larger hierarchy sizes because it gives the user more room to inspect nested rows and truncated labels without changing the data model.
 
-### 7. Overall 1,000 vs 10,000 shape outlook
+### 7. Context split for targeted subscriptions
+
+After the provider was stable, one remaining scalability issue was that every consumer called `useShapes()` and subscribed to the entire context value. Any mutation — adding a shape, deleting a shape, changing selection — caused the whole context object to change, which triggered a re-render in every consuming component regardless of what it actually used.
+
+Problems:
+
+- `Toolbar` only needs `resetView`, which never changes, but re-rendered on every shape mutation
+- `ShapePanel` only needs `createShape`, but re-rendered on every selection change
+- `SceneCanvas` only needs `selectShapeFromCanvas`, but re-rendered on every shape add or delete
+- `CountComponent` only needs `shapeCount`, but was bundled with the same context as the stable callbacks
+
+The solution was to split `ShapeContext` into two separate contexts:
+
+1. `ShapeStateContext` — reactive values that change with mutations: `shapeCount`, `rootShapeIds`, `selectedShapeId`, `getShapeById`
+2. `ShapeActionsContext` — stable callbacks: `createShape`, `deleteShape`, `deleteSelectedShape`, `selectShape`, `selectShapeFromCanvas`, `resetView`
+
+Each context gets its own `useMemo` with only its own dependencies, so a state change does not invalidate the actions context reference and vice versa.
+
+Consumers were migrated to the specific hook they need:
+
+- `ShapePanel`, `SceneCanvas`, `Toolbar`, `GlobalShortcuts` → `useShapeActions()`
+- `CountComponent` → `useShapeState()`
+- `ShapeTree` → both, since it reads state for display and actions for interaction
+
+`useShapes()` is kept as a combined spread for tests and cases that genuinely need both.
+
+Scalability impact:
+
+- before: every mutation caused a re-render fan-out across all consumers regardless of what they read
+- after: state-only consumers re-render on mutations; action-only consumers only re-render when the callback deps themselves change, which is less frequent
+- at 1,000 shapes this noticeably reduces render work for components like `Toolbar` and `ShapePanel` that have no reason to update on each shape add or delete
+- at 10,000 shapes this matters more because the mutation rate is higher and the savings per mutation compound
+
+### 8. Overall 1,000 vs 10,000 shape outlook
 
 At around 1,000 shapes, the current architecture should behave much better than the starting point because:
 
 - count reads are `O(1)` instead of repeated `O(n)` traversal
 - hierarchy and identity are indexed through normalized provider state
-- tree rows no longer all subscribe directly to the same broad shared context
+- context is split so action-only consumers do not re-render on state mutations
 - deletion and selection behavior are more consistent and easier to reason about
 
 At around 10,000 shapes, the app would still likely begin to feel pressure, but for different reasons than before:
@@ -236,6 +269,7 @@ What it achieves:
 - keyboard shortcuts handled inside the React tree through a small `GlobalShortcuts` component
 - legacy notification/controller state flow removed from the active app path
 - indexed shape state now sits between the UI and the Three.js scene
+- context split into `ShapeStateContext` and `ShapeActionsContext` so consumers only re-render when the slice they read actually changes
 - resizable right sidebar added for better tree usability
 - improved scene rendering, scene focus behavior, and tree usability
 

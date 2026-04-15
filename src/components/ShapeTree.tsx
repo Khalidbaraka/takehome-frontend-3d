@@ -3,18 +3,15 @@ import "../../styles/shape_properties.css";
 import styles from "./ShapeTree.module.css";
 import ShapeTreeEmptyState from "./ShapeTreeEmptyState";
 import ShapeTreeNode from "./ShapeTreeNode";
-import { useShapes } from "../shapes/ShapeProvider";
+import { useShapeActions, useShapeState } from "../shapes/ShapeProvider";
 
-export default function ShapeTree() {
-  const {
-    projectName,
-    shapeCount,
-    rootShapeIds,
-    selectedShapeId,
-    getShapeById,
-    deleteShape,
-    selectShape,
-  } = useShapes();
+type ShapeTreeProps = {
+  projectName: string;
+};
+
+export default function ShapeTree({ projectName }: ShapeTreeProps) {
+  const { shapeCount, rootShapeIds, selectedShapeId, getShapeById } = useShapeState();
+  const { deleteShape, selectShape } = useShapeActions();
 
   const selectedPath = useMemo(() => {
     if (!selectedShapeId) {

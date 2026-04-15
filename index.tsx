@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import ShapeTree from "./src/components/ShapeTree";
@@ -7,7 +7,7 @@ import ResizableRightSidebar from "./src/components/ResizableRightSidebar";
 import ThreeEngineController from "./src/3d/engine";
 import SceneCanvas from "./src/components/SceneCanvas";
 import Toolbar from "./src/toolbar";
-import { ShapeProvider, useShapes } from "./src/shapes/ShapeProvider";
+import { ShapeProvider, useShapeActions } from "./src/shapes/ShapeProvider";
 import "./styles/app.css";
 
 export interface AppHandle {
@@ -15,7 +15,7 @@ export interface AppHandle {
 }
 
 function GlobalShortcuts() {
-  const { deleteSelectedShape } = useShapes();
+  const { deleteSelectedShape } = useShapeActions();
 
   useEffect(() => {
     const handleDeleteKey = (event: KeyboardEvent) => {
@@ -35,11 +35,16 @@ function GlobalShortcuts() {
 }
 
 function AppShell() {
+  const [projectName, setProjectName] = useState("Untitled Project");
+
   return (
     <ShapeProvider>
       <GlobalShortcuts />
       <nav className="top-toolbar">
-        <Toolbar />
+        <Toolbar
+          projectName={projectName}
+          setProjectName={setProjectName}
+        />
       </nav>
       <div className="main-container">
         <aside id="shape-panel" className="left-bar">
@@ -49,7 +54,7 @@ function AppShell() {
           <SceneCanvas />
         </main>
         <ResizableRightSidebar>
-          <ShapeTree />
+          <ShapeTree projectName={projectName} />
         </ResizableRightSidebar>
       </div>
     </ShapeProvider>

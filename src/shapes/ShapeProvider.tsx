@@ -22,8 +22,6 @@ export type ShapeNode = {
 };
 
 type ShapeContextValue = {
-  projectName: string;
-  setProjectName: (projectName: string) => void;
   shapeCount: number;
   rootShapeIds: string[];
   selectedShapeId: string | null;
@@ -36,16 +34,23 @@ type ShapeContextValue = {
   resetView: () => void;
 };
 
-export type ShapeActions = Pick<
+type ShapeStateContextValue = Pick<
+  ShapeContextValue,
+  "shapeCount" | "rootShapeIds" | "selectedShapeId" | "getShapeById"
+>;
+
+type ShapeActionsContextValue = Pick<
   ShapeContextValue,
   | "createShape"
   | "deleteShape"
+  | "deleteSelectedShape"
   | "selectShape"
   | "selectShapeFromCanvas"
   | "resetView"
-> & {
-  deleteSelectedShape: () => void;
-};
+>;
+
+/** @deprecated Use useShapeState / useShapeActions instead */
+export type ShapeActions = ShapeActionsContextValue;
 
 type MaterialWithOptionalColor = {
   color?: {
@@ -53,7 +58,8 @@ type MaterialWithOptionalColor = {
   };
 };
 
-const ShapeContext = createContext<ShapeContextValue | null>(null);
+const ShapeStateContext = createContext<ShapeStateContextValue | null>(null);
+const ShapeActionsContext = createContext<ShapeActionsContextValue | null>(null);
 
 /**
  * ShapeProvider is the source of truth for app/UI state.
@@ -61,7 +67,6 @@ const ShapeContext = createContext<ShapeContextValue | null>(null);
  */
 export function ShapeProvider({ children }: PropsWithChildren) {
   const engine = ThreeEngineController.getInstance();
-  const [projectName, setProjectName] = useState("Untitled Project");
   const [shapeState, setShapeState] = useState(() =>
     buildShapeState(engine.getObjectsInScene() as Mesh[]),
   );
@@ -205,14 +210,18 @@ export function ShapeProvider({ children }: PropsWithChildren) {
     engine.resetView();
   }, [engine]);
 
-  const value = useMemo<ShapeContextValue>(
+  const stateValue = useMemo<ShapeStateContextValue>(
     () => ({
-      projectName,
-      setProjectName,
       shapeCount: shapeState.count,
       rootShapeIds: shapeState.rootShapeIds,
       selectedShapeId,
       getShapeById,
+    }),
+    [shapeState, selectedShapeId, getShapeById],
+  );
+
+  const actionsValue = useMemo<ShapeActionsContextValue>(
+    () => ({
       createShape,
       deleteShape,
       deleteSelectedShape,
@@ -220,32 +229,37 @@ export function ShapeProvider({ children }: PropsWithChildren) {
       selectShapeFromCanvas,
       resetView,
     }),
-    [
-      projectName,
-      shapeState,
-      selectedShapeId,
-      getShapeById,
-      createShape,
-      deleteShape,
-      deleteSelectedShape,
-      selectShape,
-      selectShapeFromCanvas,
-      resetView,
-    ],
+    [createShape, deleteShape, deleteSelectedShape, selectShape, selectShapeFromCanvas, resetView],
   );
 
   return (
-    <ShapeContext.Provider value={value}>{children}</ShapeContext.Provider>
+    <ShapeStateContext.Provider value={stateValue}>
+      <ShapeActionsContext.Provider value={actionsValue}>
+        {children}
+      </ShapeActionsContext.Provider>
+    </ShapeStateContext.Provider>
   );
 }
 
-export function useShapes() {
-  const context = useContext(ShapeContext);
+export function useShapeState() {
+  const context = useContext(ShapeStateContext);
   if (!context) {
-    throw new Error("useShapes must be used within ShapeProvider");
+    throw new Error("useShapeState must be used within ShapeProvider");
   }
-
   return context;
+}
+
+export function useShapeActions() {
+  const context = useContext(ShapeActionsContext);
+  if (!context) {
+    throw new Error("useShapeActions must be used within ShapeProvider");
+  }
+  return context;
+}
+
+/** @deprecated Prefer useShapeState / useShapeActions for targeted subscriptions */
+export function useShapes() {
+  return { ...useShapeState(), ...useShapeActions() };
 }
 
 type ShapeState = {

@@ -1,8 +1,8 @@
 import React from "react";
-import { useShapes } from "../shapes/ShapeProvider";
+import { useShapeState } from "../shapes/ShapeProvider";
 
 const CountComponent: React.FC = () => {
-  const { shapeCount } = useShapes();
+  const { shapeCount } = useShapeState();
   return <h2>{shapeCount} objects in scene</h2>;
 };
 

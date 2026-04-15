@@ -1,10 +1,18 @@
 import { useState } from "react";
 import "../styles/toolbar.css";
 import CountComponent from "./components/CountComponent";
-import { useShapes } from "./shapes/ShapeProvider";
+import { useShapeActions } from "./shapes/ShapeProvider";
 
-export default function Toolbar() {
-  const { projectName, resetView, setProjectName } = useShapes();
+type ToolbarProps = {
+  projectName: string;
+  setProjectName: (projectName: string) => void;
+};
+
+export default function Toolbar({
+  projectName,
+  setProjectName,
+}: ToolbarProps) {
+  const { resetView } = useShapeActions();
   const [draftName, setDraftName] = useState(projectName);
   const [isEditing, setIsEditing] = useState(false);
 

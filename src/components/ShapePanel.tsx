@@ -1,10 +1,10 @@
 import React from "react";
 import "../../styles/shape_panel.css";
-import { useShapes } from "../shapes/ShapeProvider";
+import { useShapeActions } from "../shapes/ShapeProvider";
 import Button from "./ShapeButton";
 
 const ShapePanel: React.FC = () => {
-  const { createShape } = useShapes();
+  const { createShape } = useShapeActions();
 
   return (
     <div className="shape-panel">

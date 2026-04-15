@@ -1,11 +1,11 @@
 import { useLayoutEffect, useRef } from "react";
 import styles from "./SceneCanvas.module.css";
 import ThreeEngineController from "../3d/engine";
-import { useShapes } from "../shapes/ShapeProvider";
+import { useShapeActions } from "../shapes/ShapeProvider";
 
 export default function SceneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { selectShapeFromCanvas } = useShapes();
+  const { selectShapeFromCanvas } = useShapeActions();
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
