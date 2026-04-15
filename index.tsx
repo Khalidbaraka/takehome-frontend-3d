@@ -1,4 +1,4 @@
-import { flushSync } from "react-dom";
+import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import ShapeTree from "./src/components/ShapeTree";
@@ -7,20 +7,37 @@ import ResizableRightSidebar from "./src/components/ResizableRightSidebar";
 import ThreeEngineController from "./src/3d/engine";
 import SceneCanvas from "./src/components/SceneCanvas";
 import Toolbar from "./src/toolbar";
-import { ShapeProvider, type ShapeActions } from "./src/shapes/ShapeProvider";
+import { ShapeProvider, useShapes } from "./src/shapes/ShapeProvider";
 import "./styles/app.css";
 
 export interface AppHandle {
   cleanup: () => void;
 }
 
-function AppShell({
-  onReady,
-}: {
-  onReady: (actions: ShapeActions) => void;
-}) {
+function GlobalShortcuts() {
+  const { deleteSelectedShape } = useShapes();
+
+  useEffect(() => {
+    const handleDeleteKey = (event: KeyboardEvent) => {
+      if (event.key === "Delete" || event.key === "Backspace") {
+        deleteSelectedShape();
+      }
+    };
+
+    window.addEventListener("keydown", handleDeleteKey);
+
+    return () => {
+      window.removeEventListener("keydown", handleDeleteKey);
+    };
+  }, [deleteSelectedShape]);
+
+  return null;
+}
+
+function AppShell() {
   return (
-    <ShapeProvider onReady={onReady}>
+    <ShapeProvider>
+      <GlobalShortcuts />
       <nav className="top-toolbar">
         <Toolbar />
       </nav>
@@ -41,29 +58,12 @@ function AppShell({
 
 export function initializeApp(root: HTMLElement = document.body): AppHandle {
   root.innerHTML = "";
-  let actions: ShapeActions | undefined;
-
-  const handleDeleteKey = (event: KeyboardEvent) => {
-    if (event.key === "Delete" || event.key === "Backspace") {
-      actions?.deleteSelectedShape();
-    }
-  };
-  window.addEventListener("keydown", handleDeleteKey);
 
   const appRoot: Root = createRoot(root);
-  flushSync(() => {
-    appRoot.render(
-      <AppShell
-        onReady={(nextActions) => {
-          actions = nextActions;
-        }}
-      />,
-    );
-  });
+  appRoot.render(<AppShell />);
 
   return {
     cleanup() {
-      window.removeEventListener("keydown", handleDeleteKey);
       appRoot.unmount();
       ThreeEngineController.dispose();
       root.innerHTML = "";

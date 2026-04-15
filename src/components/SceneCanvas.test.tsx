@@ -1,19 +1,34 @@
 import { describe, expect, test, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import { act } from "react";
+import { act, useEffect } from "react";
 import { BoxGeometry, BufferGeometry, Mesh, MeshBasicMaterial, Vector3 } from "three";
 import SceneCanvas from "./SceneCanvas";
-import { ShapeProvider, type ShapeActions } from "../shapes/ShapeProvider";
+import { ShapeProvider, useShapes } from "../shapes/ShapeProvider";
 
 describe("SceneCanvas", () => {
+  function CaptureActions({
+    onCapture,
+  }: {
+    onCapture: (actions: ReturnType<typeof useShapes>) => void;
+  }) {
+    const actions = useShapes();
+
+    useEffect(() => {
+      onCapture(actions);
+    }, [actions, onCapture]);
+
+    return null;
+  }
+
   async function renderSceneCanvas() {
-    let actions: ShapeActions | undefined;
+    let actions: ReturnType<typeof useShapes> | undefined;
     const { getByTestId } = await render(
-      <ShapeProvider
-        onReady={(nextActions) => {
-          actions = nextActions;
-        }}
-      >
+      <ShapeProvider>
+        <CaptureActions
+          onCapture={(nextActions) => {
+            actions = nextActions;
+          }}
+        />
         <SceneCanvas />
       </ShapeProvider>,
     );

@@ -2,7 +2,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -31,6 +30,7 @@ type ShapeContextValue = {
   getShapeById: (id: string) => ShapeNode | undefined;
   createShape: (shape: Shape) => void;
   deleteShape: (shapeId: string) => void;
+  deleteSelectedShape: () => void;
   selectShape: (shapeId: string | null) => void;
   selectShapeFromCanvas: (point: [number, number]) => void;
 };
@@ -50,8 +50,7 @@ const ShapeContext = createContext<ShapeContextValue | null>(null);
  */
 export function ShapeProvider({
   children,
-  onReady,
-}: PropsWithChildren<{ onReady?: (actions: ShapeActions) => void }>) {
+}: PropsWithChildren) {
   const engine = ThreeEngineController.getInstance();
   const [projectName, setProjectName] = useState("Untitled Project");
   const [shapeState, setShapeState] = useState(() =>
@@ -170,27 +169,6 @@ export function ShapeProvider({
     }
   }, [deleteShape, selectedShapeId]);
 
-  const actions = useMemo<ShapeActions>(
-    () => ({
-      createShape,
-      deleteShape,
-      deleteSelectedShape,
-      selectShape,
-      selectShapeFromCanvas,
-    }),
-    [
-      createShape,
-      deleteShape,
-      deleteSelectedShape,
-      selectShape,
-      selectShapeFromCanvas,
-    ],
-  );
-
-  useEffect(() => {
-    onReady?.(actions);
-  }, [actions, onReady]);
-
   const value = useMemo<ShapeContextValue>(
     () => ({
       projectName,
@@ -201,6 +179,7 @@ export function ShapeProvider({
       getShapeById,
       createShape,
       deleteShape,
+      deleteSelectedShape,
       selectShape,
       selectShapeFromCanvas,
     }),
@@ -211,6 +190,7 @@ export function ShapeProvider({
       getShapeById,
       createShape,
       deleteShape,
+      deleteSelectedShape,
       selectShape,
       selectShapeFromCanvas,
     ],
