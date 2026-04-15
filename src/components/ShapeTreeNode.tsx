@@ -1,25 +1,34 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import Accordion from "./Accordion";
 import ShapeTypeIcon from "./ShapeTypeIcon";
 import ShapeTreeItem from "./ShapeTreeItem";
 import styles from "./ShapeTree.module.css";
-import { useShapes } from "../shapes/ShapeProvider";
+import type { ShapeNode } from "../shapes/ShapeProvider";
 
-export default function ShapeTreeNode({
-  shapeId,
-  depth = 0,
-}: {
-  shapeId: string;
+type ShapeTreeNodeProps = {
+  shape: ShapeNode;
   depth?: number;
-}) {
-  const { getShapeById, selectedShapeId, deleteShape } = useShapes();
-  const shape = getShapeById(shapeId);
+  isSelected: boolean;
+  isOnSelectedPath: boolean;
+  getShapeById: (id: string) => ShapeNode | undefined;
+  onDelete: (shapeId: string) => void;
+  onSelect: (shapeId: string) => void;
+  selectedShapeId: string | null;
+  selectedPathIds: ReadonlySet<string>;
+};
 
-  if (!shape) {
-    return null;
-  }
-
+function ShapeTreeNode({
+  shape,
+  depth = 0,
+  isSelected,
+  isOnSelectedPath: _isOnSelectedPath,
+  getShapeById,
+  onDelete,
+  onSelect,
+  selectedShapeId,
+  selectedPathIds,
+}: ShapeTreeNodeProps) {
   const hasChildren = shape.childIds.length > 0;
   const [isExpanded, setIsExpanded] = useState(hasChildren);
 
@@ -29,7 +38,6 @@ export default function ShapeTreeNode({
     }
   }, [hasChildren]);
 
-  const isSelected = shape.id === selectedShapeId;
   const selectedHeaderStyle = isSelected
     ? {
         backgroundColor: "#036",
@@ -66,7 +74,7 @@ export default function ShapeTreeNode({
       type="button"
       onClick={(event) => {
         event.stopPropagation();
-        deleteShape(shape.id);
+        onDelete(shape.id);
       }}
     >
       <svg
@@ -86,7 +94,7 @@ export default function ShapeTreeNode({
   );
 
   return (
-    <ShapeTreeItem key={`${shape.id}-${shape.displayNumber}`} shapeId={shape.id} depth={depth}>
+    <ShapeTreeItem shapeId={shape.id} depth={depth} onSelect={onSelect}>
       {hasChildren ? (
         <Accordion
           open={isExpanded}
@@ -106,9 +114,27 @@ export default function ShapeTreeNode({
           actions={deleteButton}
         >
           <div className={styles.children} data-testid={`shape-children-${shape.id}`}>
-            {shape.childIds.map((childId) => (
-              <ShapeTreeNode key={childId} shapeId={childId} depth={depth + 1} />
-            ))}
+            {shape.childIds.map((childId) => {
+              const childShape = getShapeById(childId);
+              if (!childShape) {
+                return null;
+              }
+
+              return (
+                <MemoizedShapeTreeNode
+                  key={childId}
+                  shape={childShape}
+                  depth={depth + 1}
+                  isSelected={childId === selectedShapeId}
+                  isOnSelectedPath={selectedPathIds.has(childId)}
+                  getShapeById={getShapeById}
+                  onDelete={onDelete}
+                  onSelect={onSelect}
+                  selectedShapeId={selectedShapeId}
+                  selectedPathIds={selectedPathIds}
+                />
+              );
+            })}
           </div>
         </Accordion>
       ) : (
@@ -127,3 +153,31 @@ export default function ShapeTreeNode({
     </ShapeTreeItem>
   );
 }
+
+const MemoizedShapeTreeNode = memo(
+  ShapeTreeNode,
+  (previousProps, nextProps) => {
+    if (
+      previousProps.shape !== nextProps.shape ||
+      previousProps.depth !== nextProps.depth ||
+      previousProps.isSelected !== nextProps.isSelected ||
+      previousProps.isOnSelectedPath !== nextProps.isOnSelectedPath ||
+      previousProps.getShapeById !== nextProps.getShapeById ||
+      previousProps.onDelete !== nextProps.onDelete ||
+      previousProps.onSelect !== nextProps.onSelect
+    ) {
+      return false;
+    }
+
+    if (previousProps.isOnSelectedPath || nextProps.isOnSelectedPath) {
+      return (
+        previousProps.selectedPathIds === nextProps.selectedPathIds &&
+        previousProps.selectedShapeId === nextProps.selectedShapeId
+      );
+    }
+
+    return true;
+  },
+);
+
+export default MemoizedShapeTreeNode;

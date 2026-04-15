@@ -1,14 +1,16 @@
 import type { CSSProperties, PropsWithChildren } from "react";
 import styles from "./ShapeTree.module.css";
-import { useShapes } from "../shapes/ShapeProvider";
 
 export default function ShapeTreeItem({
   children,
   shapeId,
   depth = 0,
-}: PropsWithChildren<{ shapeId: string; depth?: number }>) {
-  const { selectShape } = useShapes();
-
+  onSelect,
+}: PropsWithChildren<{
+  shapeId: string;
+  depth?: number;
+  onSelect: (shapeId: string) => void;
+}>) {
   return (
     <div
       className={styles.shapeItem}
@@ -19,7 +21,7 @@ export default function ShapeTreeItem({
         } as CSSProperties
       }
       onClick={(e) => {
-        selectShape(shapeId);
+        onSelect(shapeId);
         e.stopPropagation();
       }}
     >
