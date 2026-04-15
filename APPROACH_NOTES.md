@@ -26,184 +26,161 @@ The work was approached in this order:
 
 This order was intentional. The goal was to stabilize behavior before doing larger refactors or visual changes.
 
-## Problems Identified
+## Problems, Iteration, and Scalability
 
-### 1. Tree deletion was missing
+### 1. Tree deletion, stale selection, and misleading labels
 
-The core feature from the README was not implemented in the tree UI. Shapes could be deleted through other paths, but not from a delete button next to each tree item.
+The first group of issues was around correctness in the tree itself.
 
-### 2. Shape count was incorrect
+Problems:
 
-The count logic did not reliably match the actual number of shape meshes visible in the scene.
+- the requested delete button was missing from the tree UI
+- deleting a parent subtree could leave selection pointing at a deleted child
+- labels were derived from array position, so remaining siblings could appear to be renumbered after deletion
 
-There was also a design problem in how count was computed:
+The solution was implemented iteratively:
 
-- count was derived by traversing the Three.js scene graph
-- that tightly coupled app logic to the rendering layer
-- each count calculation required walking all scene nodes
+1. add a delete button next to each tree item
+2. fix event propagation so delete clicks do not trigger unintended selection
+3. clear selection when the selected shape is inside the deleted subtree
+4. switch numbering to stable display numbers instead of position-based relabeling
+5. split the tree into smaller focused components so deletion and nested rendering were easier to reason about
+6. add tests for deleting children, deleting parent subtrees, and clearing stale selection
 
-From a runtime point of view, a full `scene.traverse(...)` is `O(n)` where `n` is the total number of nodes in the scene graph. That is not inherently quadratic for one traversal, but it is still a poor fit for a value that the UI reads often.
+Complexity impact:
 
-### 3. Selection state became stale after deletion
+- before: correctness bugs caused follow-up actions to work against invalid state, which made behavior unreliable even when raw runtime cost looked small
+- after: deletion and selection still operate on the affected subtree, but they now do so against a consistent state model instead of stale references
 
-Deleting a shape or deleting a parent subtree could leave selection pointing at removed objects, which caused follow-up actions to behave incorrectly.
+### 2. Shape count and state reads were too tied to scene traversal
 
-### 4. UI labels were misleading
+The original count logic did not reliably match the visible shapes, and it was derived by traversing the Three.js scene graph.
 
-The shape titles used display numbering in ways that could become confusing after deletion. In particular, numbering behavior needed to be clarified between root items and children.
+That meant:
 
-### 5. Notification subscriptions were placed in render paths
+- app logic depended directly on the render layer
+- the count required walking scene nodes repeatedly
+- a frequently-read UI value depended on `scene.traverse(...)`
 
-Parts of the React UI subscribed to events during render rather than inside a lifecycle-managed effect. That risked duplicate listeners and unnecessary updates.
+The solution was:
 
-### 6. The UI depended too directly on live Three.js objects
+1. stop treating the scene graph as the main app-state source
+2. introduce normalized shape state in `ShapeProvider`
+3. track `shapesById`, `meshById`, `rootShapeIds`, and `selectedShapeId`
+4. update `shapeCount` incrementally as shapes are added or removed
 
-The tree was being driven from `Mesh` objects directly. That worked for a small demo, but it made state management, testing, and scalability harder.
+Big O:
 
-### 7. Rendering quality was flat
+- before: count reads depended on a full traversal, which is `O(n)` for `n` scene nodes
+- after: count reads are `O(1)` because the provider stores the count directly
 
-The scene used unlit materials, so shapes looked flat and visually undefined.
+Scalability impact:
 
-### 8. Tree usability degraded with nesting
+- at 1,000 shapes this is meaningfully better because common reads are no longer tied to repeated full-scene traversal
+- at 10,000 shapes this matters even more because the count remains cheap even as scene size grows
 
-Nested content made the tree feel noisy, and layout/overflow behavior could lead to poor scrolling and interaction.
+### 3. React subscriptions and state ownership were too broad
 
-## How The Solution Evolved
+The original structure had React components subscribing in render paths, and different parts of the app were mounted separately. The tree was also too dependent on live Three.js objects.
 
-### Phase 1: Correctness and missing feature
+That created several problems:
 
-The first step was to implement tree deletion and make it reliable.
+- duplicate listeners could accumulate
+- shared app state was awkward because the UI was split across separate roots
+- the tree depended too directly on `Mesh` instances and `mesh.children`
+- UI code was harder to test because it relied on render-layer objects
 
-Changes:
+The solution was implemented in stages:
 
-- added a delete button next to each tree item
-- fixed event propagation so delete clicks did not trigger unwanted selection
-- fixed deletion behavior for parent/child subtrees
-- fixed selection clearing after delete
-- fixed the object count logic and stopped deriving UI count from repeated scene traversal
+1. move the app under a single React root
+2. introduce `ShapeProvider` as the source of truth
+3. move create/delete/select actions into the provider
+4. route canvas selection through the provider-owned flow as well
+5. keep Three.js as the rendering layer instead of the main UI state model
+6. remove the legacy `MainViewController` and notification-center path once the provider-owned flow was fully in place
 
-Why this came first:
+Big O and scalability impact:
 
-- these were user-visible correctness issues
-- they were directly tied to the requested take-home feature
+- this change was less about one dramatic complexity drop and more about making state access predictable
+- indexed lookups such as `shapesById.get(id)` and `meshById.get(id)` are effectively `O(1)`
+- hierarchy reads now come from `rootShapeIds`, `parentId`, and `childIds` rather than from ad hoc scene traversal
 
-Tradeoff:
+This was also the key decoupling step:
 
-- the code still used the original architecture at this stage
-- the goal here was safe behavior, not a full redesign
+- before: the UI depended much more directly on live Three.js objects and scene traversal
+- after: the UI reads a normalized indexed state model, while Three.js stays as the rendering and interaction layer behind that model
 
-### Phase 2: Tests around the real flows
+At 1,000 shapes, this makes the system easier to reason about and cheaper to query. At 10,000 shapes, it does not solve every cost, but it gives the app a much better base than driving the UI directly from live scene objects.
 
-Once the main behavior worked, the next step was to add tests for the important user flows.
+### 4. Tree rerender scope and nested-tree usability
 
-Tests were added for:
+The tree UI had both usability issues and scaling issues.
 
-- creating root shapes
-- creating child shapes
-- selecting from canvas
-- selecting from tree
-- deleting a child
-- deleting a parent subtree
-- clearing selection after delete
-- updating the project name
-- showing geometry type and color
-- collapsing and expanding tree nodes
+Problems:
 
-Why this came next:
+- nested rows shifted the whole interactive row instead of only indenting inner content
+- long labels could truncate awkwardly
+- guide lines and selection styling needed refinement
+- every row consumed broad shared state directly, which made rerender scope wider than necessary
 
-- after changing deletion, selection, and count logic, tests were needed to prevent regressions
+The solution was iterative:
 
-Tradeoff:
+1. keep the interactive row full width and indent only the inner content
+2. improve nested tree visuals, guide lines, truncation, focus, and tooltip behavior
+3. split the tree into smaller focused pieces such as item, node, empty-state, and accordion-driven nested rendering
+4. move tree context reads upward into `ShapeTree`
+5. pass row-specific props down to `ShapeTreeNode`
+6. memoize tree rows so unchanged branches can be skipped more easily
 
-- tests initially relied on some app bootstrap behavior that was still awkward
-- that helped expose where the app structure needed improvement
+Big O and scalability impact:
 
-### Phase 3: Move toward a better app state model
+- before: selection and tree updates were more likely to cause broad rerender fan-out because each row subscribed directly to shared context
+- after: row components receive narrower props and use memoization, which reduces unnecessary rerenders even though rendering a visible tree is still proportional to the amount of UI shown
 
-The next major step was to separate UI state from raw scene objects.
+Scalability outlook:
 
-Final direction:
+- at 1,000 shapes, the tree should hold up much better than the original version because state reads are indexed and row rerenders are narrower
+- at 10,000 shapes, the main remaining pressure is not count lookup anymore, but the cost of rendering and interacting with a very large nested tree and scene
 
-- introduced `ShapeProvider`
-- introduced a normalized shape model
-- tracked:
-  - `shapesById`
-  - `rootShapeIds`
-  - `selectedShapeId`
-  - `meshById`
+### 5. Rendering quality
 
-Why this was important:
+The scene originally used unlit materials, so shapes looked flat and harder to read.
 
-- it made the tree render from app state rather than directly from live scene objects
-- it improved testability and maintainability
-- it created a cleaner place for shape actions
+The solution was straightforward:
 
-Tradeoff:
+1. improve scene lighting
+2. switch to shaded materials
 
-- this was a larger refactor than a small feature patch
-- to keep the transition safe, the provider was introduced in stages instead of rewriting everything at once
+This was mainly a readability improvement rather than a complexity change, but it mattered for usability because selecting and understanding shapes became visually easier.
 
-### Phase 4: Consolidate the app into one React tree
+### 6. Sidebar usability and layout polish
 
-Originally, different parts of the UI were mounted separately, which made shared app state awkward.
+Once the tree behavior was stable, the right sidebar still had a usability gap: it was fixed-width, which made deep hierarchies and longer labels harder to inspect comfortably.
 
-Changes:
+The solution was:
 
-- moved the app to a single React root
-- rendered toolbar, panel, canvas, and shape tree under one provider
+1. introduce a resizable right sidebar wrapper
+2. add a dedicated resize handle and local component styling
+3. keep the tree inside the resizable panel so the user can trade canvas space for tree readability when needed
 
-Why this mattered:
+This was mainly a usability improvement rather than a complexity change, but it helps at larger hierarchy sizes because it gives the user more room to inspect nested rows and truncated labels without changing the data model.
 
-- a provider cannot be the real source of truth if the app is split into disconnected roots
+### 7. Overall 1,000 vs 10,000 shape outlook
 
-Tradeoff:
+At around 1,000 shapes, the current architecture should behave much better than the starting point because:
 
-- bootstrap code changed more than the feature itself required
-- but this was necessary to make the provider architecture coherent
+- count reads are `O(1)` instead of repeated `O(n)` traversal
+- hierarchy and identity are indexed through normalized provider state
+- tree rows no longer all subscribe directly to the same broad shared context
+- deletion and selection behavior are more consistent and easier to reason about
 
-### Phase 5: Make the provider the real action owner
+At around 10,000 shapes, the app would still likely begin to feel pressure, but for different reasons than before:
 
-After introducing provider state, the next step was to stop treating it as just a mirror of controller notifications.
+- rendering a very large nested DOM tree is still expensive
+- scene interaction still scales with the number of scene objects involved
+- large hierarchy changes still require real work, even with indexed state
 
-Final solution:
-
-- `ShapeProvider` owns:
-  - create shape
-  - delete shape
-  - delete selected shape
-  - select shape from tree
-  - select shape from canvas
-  - project name state
-- Three.js is used as the rendering layer
-- `MainViewController` and the notification center are left in the repo but marked deprecated
-
-Why this was the final architecture choice:
-
-- it gives React a real source of truth
-- it reduces coupling between UI code and Three.js internals
-- it removes the need for the UI to subscribe to legacy notification flows
-
-Tradeoff:
-
-- this leaves some deprecated code in place rather than deleting it immediately
-- that was a deliberate choice to reduce risk and keep the evolution understandable
-
-## Performance and Scalability Improvements
-
-Several targeted improvements were made while iterating:
-
-- moved app/UI state into a normalized provider structure
-- reduced reliance on broad notification-driven updates
-- changed object counting from repeated `O(n)` full-scene traversal to incremental tracking with `O(1)` reads
-- improved selection updates so they no longer clear highlight across the full scene
-- reused a single raycast service where appropriate
-
-Remaining tradeoff:
-
-- the app is in a much better place than the starting point, but a full production-scale editor would likely need more work around:
-  - scene indexing
-  - virtualization for very large trees
-  - stricter separation between render objects and app models
+So the main improvement is not that the app becomes magically cheap at 10,000 shapes. The improvement is that the expensive parts are now more intentional and localized, instead of being mixed together with correctness bugs, repeated traversal, and overly broad subscriptions.
 
 ## UI Improvements
 
@@ -212,8 +189,10 @@ After correctness and state flow were stabilized, the UI was improved to make th
 - redesigned top toolbar with inline project name editing
 - improved add-shape panel layout
 - improved shape tree layout and hover/selection affordances
+- added geometry type and color indicators directly in the tree rows
 - added accordion support for nested shapes
 - improved tree scrolling behavior so nesting does not create awkward overflow behavior
+- added a tooltip for truncated tree labels so deeply nested items still expose their full name
 - added lighting and shaded materials to improve scene readability
 
 Tradeoff:
@@ -232,7 +211,9 @@ What it achieves:
 - tests added for the main flows
 - app state moved into a dedicated provider
 - single React tree instead of fragmented UI mounting
-- deprecated legacy state flow clearly separated from the active app path
+- legacy notification/controller state flow removed from the active app path
+- indexed shape state now sits between the UI and the Three.js scene
+- resizable right sidebar added for better tree usability
 - improved scene rendering and tree usability
 
 Why this approach was chosen:
