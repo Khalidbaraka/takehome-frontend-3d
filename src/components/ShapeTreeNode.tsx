@@ -10,24 +10,20 @@ type ShapeTreeNodeProps = {
   shape: ShapeNode;
   depth?: number;
   isSelected: boolean;
-  isOnSelectedPath: boolean;
   getShapeById: (id: string) => ShapeNode | undefined;
   onDelete: (shapeId: string) => void;
   onSelect: (shapeId: string) => void;
   selectedShapeId: string | null;
-  selectedPathIds: ReadonlySet<string>;
 };
 
 function ShapeTreeNode({
   shape,
   depth = 0,
   isSelected,
-  isOnSelectedPath: _isOnSelectedPath,
   getShapeById,
   onDelete,
   onSelect,
   selectedShapeId,
-  selectedPathIds,
 }: ShapeTreeNodeProps) {
   const hasChildren = shape.childIds.length > 0;
   const [isExpanded, setIsExpanded] = useState(hasChildren);
@@ -126,12 +122,10 @@ function ShapeTreeNode({
                   shape={childShape}
                   depth={depth + 1}
                   isSelected={childId === selectedShapeId}
-                  isOnSelectedPath={selectedPathIds.has(childId)}
                   getShapeById={getShapeById}
                   onDelete={onDelete}
                   onSelect={onSelect}
                   selectedShapeId={selectedShapeId}
-                  selectedPathIds={selectedPathIds}
                 />
               );
             })}
@@ -154,30 +148,6 @@ function ShapeTreeNode({
   );
 }
 
-const MemoizedShapeTreeNode = memo(
-  ShapeTreeNode,
-  (previousProps, nextProps) => {
-    if (
-      previousProps.shape !== nextProps.shape ||
-      previousProps.depth !== nextProps.depth ||
-      previousProps.isSelected !== nextProps.isSelected ||
-      previousProps.isOnSelectedPath !== nextProps.isOnSelectedPath ||
-      previousProps.getShapeById !== nextProps.getShapeById ||
-      previousProps.onDelete !== nextProps.onDelete ||
-      previousProps.onSelect !== nextProps.onSelect
-    ) {
-      return false;
-    }
-
-    if (previousProps.isOnSelectedPath || nextProps.isOnSelectedPath) {
-      return (
-        previousProps.selectedPathIds === nextProps.selectedPathIds &&
-        previousProps.selectedShapeId === nextProps.selectedShapeId
-      );
-    }
-
-    return true;
-  },
-);
+const MemoizedShapeTreeNode = memo(ShapeTreeNode);
 
 export default MemoizedShapeTreeNode;

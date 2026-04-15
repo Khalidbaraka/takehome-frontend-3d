@@ -7,7 +7,6 @@ export default function SceneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { selectShapeFromCanvas } = useShapes();
 
-  // should we move it layoutEffect?
   useEffect(() => {
     let frameId = 0;
     let isUnmounted = false;
@@ -29,23 +28,24 @@ export default function SceneCanvas() {
   }, []);
 
   useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
     const engine = ThreeEngineController.getInstance();
     const handleResize = () => {
-      // no need to check if the canvas ref is current here because the engine.updateSize method already checks if the renderer is initialized and if not it throws an error, and the renderer is only initialized in the install method which is called after we check if the canvas ref is current
-      if (!canvasRef.current) return;
-      engine.updateSize(canvasRef.current);
+      engine.updateSize(canvas);
     };
 
-    if (canvasRef.current) {
-      engine.install(canvasRef.current);
-      window.addEventListener("resize", handleResize);
-    }
+    engine.install(canvas);
+    window.addEventListener("resize", handleResize);
 
     return () => {
       ThreeEngineController.dispose();
       window.removeEventListener("resize", handleResize);
     };
-  }, [canvasRef]);
+  }, []);
 
   return (
     <canvas
