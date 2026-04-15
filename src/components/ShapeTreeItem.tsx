@@ -1,31 +1,36 @@
+import { forwardRef } from "react";
 import type { CSSProperties, PropsWithChildren } from "react";
 import styles from "./ShapeTree.module.css";
 
-export default function ShapeTreeItem({
-  children,
-  shapeId,
-  depth = 0,
-  onSelect,
-}: PropsWithChildren<{
+type ShapeTreeItemProps = PropsWithChildren<{
   shapeId: string;
   depth?: number;
   onSelect: (shapeId: string) => void;
-}>) {
-  return (
-    <div
-      className={styles.shapeItem}
-      data-testid={`shape-item-${shapeId}`}
-      style={
-        {
-          "--tree-depth": depth,
-        } as CSSProperties
-      }
-      onClick={(e) => {
-        onSelect(shapeId);
-        e.stopPropagation();
-      }}
-    >
-      {children}
-    </div>
-  );
-}
+}>;
+
+const ShapeTreeItem = forwardRef<HTMLDivElement, ShapeTreeItemProps>(
+  function ShapeTreeItem({ children, shapeId, depth = 0, onSelect }, ref) {
+    const style = {
+      "--tree-depth": depth,
+    } as CSSProperties;
+
+    const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+      onSelect(shapeId);
+      event.stopPropagation();
+    };
+
+    return (
+      <div
+        ref={ref}
+        className={styles.shapeItem}
+        data-testid={`shape-item-${shapeId}`}
+        style={style}
+        onClick={handleClick}
+      >
+        {children}
+      </div>
+    );
+  },
+);
+
+export default ShapeTreeItem;

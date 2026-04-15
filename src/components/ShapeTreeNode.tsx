@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import Accordion from "./Accordion";
 import ShapeTypeIcon from "./ShapeTypeIcon";
@@ -13,7 +13,7 @@ type ShapeTreeNodeProps = {
   getShapeById: (id: string) => ShapeNode | undefined;
   onDelete: (shapeId: string) => void;
   onSelect: (shapeId: string) => void;
-  selectedShapeId: string | null;
+  selectedPath: string[] | null;
 };
 
 function ShapeTreeNode({
@@ -23,9 +23,11 @@ function ShapeTreeNode({
   getShapeById,
   onDelete,
   onSelect,
-  selectedShapeId,
+  selectedPath,
 }: ShapeTreeNodeProps) {
   const hasChildren = shape.childIds.length > 0;
+  const itemRef = useRef<HTMLDivElement>(null);
+
   const [isExpanded, setIsExpanded] = useState(hasChildren);
 
   useEffect(() => {
@@ -33,6 +35,21 @@ function ShapeTreeNode({
       setIsExpanded(true);
     }
   }, [hasChildren]);
+
+  useEffect(() => {
+    if (selectedPath && selectedPath.length > 1) {
+      setIsExpanded(true);
+    }
+  }, [selectedPath]);
+
+  useEffect(() => {
+    if (isSelected) {
+      itemRef.current?.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
+  }, [isSelected]);
 
   const selectedHeaderStyle = isSelected
     ? {
@@ -90,7 +107,12 @@ function ShapeTreeNode({
   );
 
   return (
-    <ShapeTreeItem shapeId={shape.id} depth={depth} onSelect={onSelect}>
+    <ShapeTreeItem
+      ref={itemRef}
+      shapeId={shape.id}
+      depth={depth}
+      onSelect={onSelect}
+    >
       {hasChildren ? (
         <Accordion
           open={isExpanded}
@@ -117,15 +139,17 @@ function ShapeTreeNode({
               }
 
               return (
-                <MemoizedShapeTreeNode
+                <ShapeTreeNode
                   key={childId}
                   shape={childShape}
                   depth={depth + 1}
-                  isSelected={childId === selectedShapeId}
+                  isSelected={selectedPath?.length === 2 && selectedPath[1] === childShape.id}
                   getShapeById={getShapeById}
                   onDelete={onDelete}
                   onSelect={onSelect}
-                  selectedShapeId={selectedShapeId}
+                  selectedPath={
+                    selectedPath?.[1] === childShape.id ? selectedPath.slice(1) : null
+                  }
                 />
               );
             })}
@@ -148,6 +172,4 @@ function ShapeTreeNode({
   );
 }
 
-const MemoizedShapeTreeNode = memo(ShapeTreeNode);
-
-export default MemoizedShapeTreeNode;
+export default ShapeTreeNode;

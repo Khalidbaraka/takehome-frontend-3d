@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import "../../styles/shape_properties.css";
 import styles from "./ShapeTree.module.css";
 import ShapeTreeEmptyState from "./ShapeTreeEmptyState";
@@ -14,6 +15,27 @@ export default function ShapeTree() {
     deleteShape,
     selectShape,
   } = useShapes();
+
+  const selectedPath = useMemo(() => {
+    if (!selectedShapeId) {
+      return null;
+    }
+
+    const path: string[] = [];
+    let currentId: string | null = selectedShapeId;
+
+    while (currentId) {
+      const shape = getShapeById(currentId);
+      if (!shape) {
+        return null;
+      }
+
+      path.unshift(shape.id);
+      currentId = shape.parentId;
+    }
+
+    return path;
+  }, [getShapeById, selectedShapeId]);
 
   return (
     <div className={styles.container}>
@@ -38,7 +60,7 @@ export default function ShapeTree() {
                 getShapeById={getShapeById}
                 onDelete={deleteShape}
                 onSelect={selectShape}
-                selectedShapeId={selectedShapeId}
+                selectedPath={selectedPath?.[0] === shapeId ? selectedPath : null}
               />
             );
           })
