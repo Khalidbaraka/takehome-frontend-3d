@@ -36,8 +36,14 @@ export default function ShapeTree({ projectName }: ShapeTreeProps) {
 
   return (
     <div className={styles.container}>
-      <h3>{projectName}</h3>
-      <span>{shapeCount} objects</span>
+      <h3
+        className={styles.projectTitle}
+        data-testid="shape-tree-project-name"
+        title={projectName}
+      >
+        {projectName}
+      </h3>
+      {shapeCount > 0 && <span>{shapeCount} objects</span>}
 
       <div className={styles.treeContainer}>
         {rootShapeIds.length === 0 ? (

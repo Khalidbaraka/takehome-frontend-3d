@@ -73,7 +73,13 @@ export default function Toolbar({
           </div>
         ) : (
           <div className="toolbar-title-display">
-            <h2 className="project-name">{projectName}</h2>
+            <h2
+              className="project-name"
+              data-testid="toolbar-project-name"
+              title={projectName}
+            >
+              {projectName}
+            </h2>
             <button
               aria-label="Edit project name"
               className="toolbar-icon-button"
