@@ -53,9 +53,9 @@ function ShapeTreeNode({
 
   const selectedHeaderStyle = isSelected
     ? {
-        backgroundColor: "#036",
-        borderColor: "#93c5fd",
-        boxShadow: "inset 0 0 0 1px rgb(147 197 253 / 0.2)",
+        backgroundColor: "var(--accent-strong)",
+        borderColor: "var(--accent-soft)",
+        boxShadow: "inset 0 0 0 1px var(--accent-inset)",
       }
     : undefined;
   const rowStyle = {

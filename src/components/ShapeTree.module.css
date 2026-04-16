@@ -34,11 +34,11 @@
   justify-content: center;
   min-height: 0;
   box-sizing: border-box;
-  border: 1px dashed #2d3139;
+  border: 1px dashed var(--border-color);
   border-radius: 12px;
   padding: 24px 18px;
-  color: #9ca3af;
-  background: rgb(255 255 255 / 0.02);
+  color: var(--text-muted);
+  background: var(--empty-surface);
   text-align: center;
   width: 100%;
 }
@@ -53,12 +53,12 @@
 .emptyStateIcon {
   width: 28px;
   height: 28px;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .emptyStateTitle {
   margin: 0 0 6px;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -68,13 +68,13 @@
   max-width: 22ch;
   font-size: 0.85rem;
   line-height: 1.5;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .shapeItem {
   --tree-depth: 0;
   --tree-indent-step: 18px;
-  --tree-guide-color: rgb(148 163 184 / 0.14);
+  --tree-guide-color: color-mix(in srgb, var(--text-muted) 20%, transparent);
   position: relative;
   min-width: 0;
   border-radius: 10px;
@@ -104,27 +104,27 @@
 }
 
 .nodeHeader:hover {
-  background-color: #282c33;
-  border-color: #93c5fd;
-  box-shadow: inset 0 0 0 1px rgb(147 197 253 / 0.2);
+  background-color: var(--surface-bg-hover);
+  border-color: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-inset);
 }
 
 .nodeHeader:focus-within {
-  background-color: #282c33;
-  border-color: #93c5fd;
-  box-shadow: inset 0 0 0 1px rgb(147 197 253 / 0.2);
+  background-color: var(--surface-bg-hover);
+  border-color: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-inset);
 }
 
 .nodeHeaderSelected {
-  background-color: #036;
-  border-color: #93c5fd;
-  box-shadow: inset 0 0 0 1px rgb(147 197 253 / 0.2);
+  background-color: var(--accent-strong);
+  border-color: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-inset);
 }
 
 .nodeHeaderSelected:hover {
-  background-color: #036;
-  border-color: #93c5fd;
-  box-shadow: inset 0 0 0 1px rgb(147 197 253 / 0.2);
+  background-color: var(--accent-strong);
+  border-color: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-inset);
 }
 
 .nodeLabel {
@@ -175,13 +175,13 @@
   width: 12px;
   height: 12px;
   border-radius: 999px;
-  box-shadow: inset 0 0 0 1px rgb(15 23 42 / 0.12);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-bg) 18%, transparent);
 }
 
 .shapeIcon {
-  width: 13px;
-  height: 13px;
-  color: #9ca3af;
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
   flex: 0 0 auto;
 }
 
@@ -205,7 +205,7 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #64748b;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0;
   opacity: 0;
@@ -222,8 +222,8 @@
 }
 
 .deleteButton:hover {
-  color: #dc2626;
-  background-color: #fee2e2;
+  color: var(--danger);
+  background-color: var(--danger-soft);
 }
 
 .deleteButton:active {
@@ -231,7 +231,7 @@
 }
 
 .deleteButton:focus-visible {
-  outline: 2px solid #fca5a5;
+  outline: 2px solid color-mix(in srgb, var(--danger) 35%, white);
   outline-offset: 2px;
 }
 
@@ -239,12 +239,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: transparent;
-  border: 1px solid #2d3139;
+  border: none;
   border-radius: 4px;
-  color: #f3f4f6;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 0;
   transition:
