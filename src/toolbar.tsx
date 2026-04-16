@@ -2,6 +2,7 @@ import { useState } from "react";
 import "../styles/toolbar.css";
 import CountComponent from "./components/CountComponent";
 import { useShapeActions } from "./shapes/ShapeProvider";
+import { useTheme } from "./theme/ThemeProvider";
 
 type ToolbarProps = {
   projectName: string;
@@ -13,6 +14,7 @@ export default function Toolbar({
   setProjectName,
 }: ToolbarProps) {
   const { resetView } = useShapeActions();
+  const { theme, toggleTheme } = useTheme();
   const [draftName, setDraftName] = useState(projectName);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -91,6 +93,15 @@ export default function Toolbar({
           </div>
         )}
       </div>
+      <button
+        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+        className="toolbar-secondary-button"
+        data-testid="theme-toggle"
+        type="button"
+        onClick={toggleTheme}
+      >
+        {theme === "dark" ? "Light Mode" : "Dark Mode"}
+      </button>
       <button
         aria-label="Reset scene view"
         className="toolbar-secondary-button"

@@ -2,10 +2,12 @@ import { useLayoutEffect, useRef } from "react";
 import styles from "./SceneCanvas.module.css";
 import ThreeEngineController from "../3d/engine";
 import { useShapeActions } from "../shapes/ShapeProvider";
+import { useTheme } from "../theme/ThemeProvider";
 
 export default function SceneCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { selectShapeFromCanvas } = useShapeActions();
+  const { theme } = useTheme();
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -26,6 +28,11 @@ export default function SceneCanvas() {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const engine = ThreeEngineController.getInstance();
+    engine.applyTheme(theme);
+  }, [theme]);
 
   return (
     <canvas

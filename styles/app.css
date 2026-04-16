@@ -1,3 +1,51 @@
+:root {
+  --app-bg: #1a1d23;
+  --panel-bg: #1f2228;
+  --toolbar-bg: #181b20;
+  --surface-bg: #2a2e36;
+  --surface-bg-hover: #303540;
+  --surface-muted: #22262d;
+  --border-color: #2d3139;
+  --border-strong: #3a404a;
+  --text-primary: #f3f4f6;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-soft: #93c5fd;
+  --accent-strong: #036;
+  --accent-ring: rgb(59 130 246 / 0.22);
+  --accent-inset: rgb(147 197 253 / 0.2);
+  --canvas-bg: #1a1d23;
+  --empty-surface: rgb(255 255 255 / 0.02);
+  --danger: #dc2626;
+  --danger-soft: rgb(220 38 38 / 0.16);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --app-bg: #eef2f7;
+  --panel-bg: #f8fafc;
+  --toolbar-bg: #ffffff;
+  --surface-bg: #e9eef5;
+  --surface-bg-hover: #dde6f1;
+  --surface-muted: #f1f5f9;
+  --border-color: #d5deea;
+  --border-strong: #c3cfde;
+  --text-primary: #17212f;
+  --text-secondary: #334155;
+  --text-muted: #5f6b7d;
+  --accent: #2563eb;
+  --accent-soft: #60a5fa;
+  --accent-strong: #dbeafe;
+  --accent-ring: rgb(37 99 235 / 0.18);
+  --accent-inset: rgb(37 99 235 / 0.12);
+  --canvas-bg: #f4f7fb;
+  --empty-surface: rgb(15 23 42 / 0.025);
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  color-scheme: light;
+}
+
 html,
 body {
   margin: 0;
@@ -5,14 +53,16 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--app-bg);
+  color: var(--text-primary);
 }
 
 /* Top Toolbar */
 .top-toolbar {
   min-height: 72px;
-  background: #181b20;
-  border-bottom: 1px solid #2d3139;
-  color: white;
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   padding: 0 28px;
@@ -28,18 +78,18 @@ body {
 .left-bar {
   width: 240px;
   min-width: 240px;
-  background: #1f2228;
-  border-right: 1px solid #2d3139;
-  color: #f3f4f6;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border-color);
+  color: var(--text-primary);
   padding: 12px;
 }
 
 .right-bar {
   width: 280px;
   min-width: 280px;
-  background: #1f2228;
-  border-left: 1px solid #2d3139;
-  color: #f3f4f6;
+  background: var(--panel-bg);
+  border-left: 1px solid var(--border-color);
+  color: var(--text-primary);
   padding: 4px 10px;
 }
 
@@ -47,5 +97,5 @@ body {
   display: flex;
   width: 100%;
   height: 100%;
-  background: #1a1d23;
+  background: var(--canvas-bg);
 }

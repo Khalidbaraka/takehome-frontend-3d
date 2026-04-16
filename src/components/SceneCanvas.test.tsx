@@ -8,6 +8,7 @@ import {
   useShapeActions,
   useShapeState,
 } from "../shapes/ShapeProvider";
+import { ThemeProvider } from "../theme/ThemeProvider";
 
 type TestShapeApi = ReturnType<typeof useShapeState> & ReturnType<typeof useShapeActions>;
 
@@ -30,14 +31,16 @@ describe("SceneCanvas", () => {
   async function renderSceneCanvas() {
     let actions: TestShapeApi | undefined;
     const { getByTestId } = await render(
-      <ShapeProvider>
-        <CaptureActions
-          onCapture={(nextActions) => {
-            actions = nextActions;
-          }}
-        />
-        <SceneCanvas />
-      </ShapeProvider>,
+      <ThemeProvider>
+        <ShapeProvider>
+          <CaptureActions
+            onCapture={(nextActions) => {
+              actions = nextActions;
+            }}
+          />
+          <SceneCanvas />
+        </ShapeProvider>
+      </ThemeProvider>,
     );
     const canvas = getByTestId("scene-canvas");
 

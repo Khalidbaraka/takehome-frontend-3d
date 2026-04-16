@@ -12,10 +12,32 @@ import {
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
+import type { ThemeMode } from "../theme/ThemeProvider";
 
 const DEFAULT_CAMERA_POSITION = new Vector3(10, 10, 10);
 const DEFAULT_CAMERA_TARGET = new Vector3(0, 0, 0);
 const CAMERA_ANIMATION_DURATION_MS = 280;
+
+const SCENE_THEMES = {
+  dark: {
+    background: 0x1a1d23,
+    grid: 0x2a2d35,
+    hemisphereSky: 0xe2e8f0,
+    hemisphereGround: 0x111827,
+    ambient: 0xffffff,
+    key: 0xffffff,
+    fill: 0x93c5fd,
+  },
+  light: {
+    background: 0xf4f7fb,
+    grid: 0x94a3b8,
+    hemisphereSky: 0xffffff,
+    hemisphereGround: 0xdbe4f0,
+    ambient: 0xffffff,
+    key: 0xffffff,
+    fill: 0x60a5fa,
+  },
+};
 
 export default class ThreeEngineController {
   private static instance?: ThreeEngineController;
@@ -24,6 +46,7 @@ export default class ThreeEngineController {
   private camera?: PerspectiveCamera;
   private renderer?: WebGLRenderer;
   private controls?: OrbitControls;
+  private currentTheme: ThemeMode = "dark";
   private isSceneInitialized: boolean = false;
   private frameId: number | null = null;
   private cameraAnimationFrameId: number | null = null;
@@ -58,6 +81,18 @@ export default class ThreeEngineController {
     this.isSceneInitialized = true;
 
     this.updateSize(canvasElement);
+    this.requestRender();
+  }
+
+  applyTheme(theme: ThemeMode) {
+    this.currentTheme = theme;
+    applySceneTheme(this.scene, theme);
+
+    if (this.renderer) {
+      const colors = SCENE_THEMES[theme];
+      this.renderer.setClearColor(colors.background, 1);
+    }
+
     this.requestRender();
   }
 
@@ -113,7 +148,9 @@ export default class ThreeEngineController {
 
   focusObject(object: Object3D) {
     if (!this.camera || !this.controls) {
-      throw new Error("Camera and controls must be initialized before focusing");
+      throw new Error(
+        "Camera and controls must be initialized before focusing",
+      );
     }
 
     const box = new Box3().setFromObject(object);
@@ -128,20 +165,31 @@ export default class ThreeEngineController {
       box.getSize(size);
     }
 
-    const currentOffset = this.camera.position.clone().sub(this.controls.target);
-    const direction = currentOffset.lengthSq() > 0
-      ? currentOffset.normalize()
-      : new Vector3(1, 1, 1).normalize();
+    const currentOffset = this.camera.position
+      .clone()
+      .sub(this.controls.target);
+    const direction =
+      currentOffset.lengthSq() > 0
+        ? currentOffset.normalize()
+        : new Vector3(1, 1, 1).normalize();
     const radius = Math.max(size.length() * 0.5, 1);
-    const distance = Math.max(radius * 6, this.controls.minDistance + radius * 3);
+    const distance = Math.max(
+      radius * 6,
+      this.controls.minDistance + radius * 3,
+    );
 
     this.isFocusedView = true;
-    this.animateCamera(center.clone().add(direction.multiplyScalar(distance)), center);
+    this.animateCamera(
+      center.clone().add(direction.multiplyScalar(distance)),
+      center,
+    );
   }
 
   resetView() {
     if (!this.camera || !this.controls) {
-      throw new Error("Camera and controls must be initialized before resetting view");
+      throw new Error(
+        "Camera and controls must be initialized before resetting view",
+      );
     }
 
     this.isFocusedView = false;
@@ -210,7 +258,9 @@ export default class ThreeEngineController {
 
   private animateCamera(nextPosition: Vector3, nextTarget: Vector3) {
     if (!this.camera || !this.controls) {
-      throw new Error("Camera and controls must be initialized before animating");
+      throw new Error(
+        "Camera and controls must be initialized before animating",
+      );
     }
 
     if (this.cameraAnimationFrameId !== null) {
@@ -227,7 +277,10 @@ export default class ThreeEngineController {
         return;
       }
 
-      const progress = Math.min((now - startedAt) / CAMERA_ANIMATION_DURATION_MS, 1);
+      const progress = Math.min(
+        (now - startedAt) / CAMERA_ANIMATION_DURATION_MS,
+        1,
+      );
       const eased = easeInOutCubic(progress);
 
       this.camera.position.lerpVectors(startPosition, nextPosition, eased);
@@ -248,17 +301,31 @@ export default class ThreeEngineController {
 
 function buildScene() {
   const scene = new Scene();
-  scene.background = new Color(0x1a1d23);
+  scene.background = new Color(SCENE_THEMES.dark.background);
 
-  const hemisphereLight = new HemisphereLight(0xe2e8f0, 0x111827, 1.1);
-  const ambientLight = new AmbientLight(0xffffff, 0.45);
-  const keyLight = new DirectionalLight(0xffffff, 1.4);
+  const hemisphereLight = new HemisphereLight(
+    SCENE_THEMES.dark.hemisphereSky,
+    SCENE_THEMES.dark.hemisphereGround,
+    1.1,
+  );
+  hemisphereLight.name = "theme-hemisphere-light";
+  const ambientLight = new AmbientLight(SCENE_THEMES.dark.ambient, 0.45);
+  ambientLight.name = "theme-ambient-light";
+  const keyLight = new DirectionalLight(SCENE_THEMES.dark.key, 1.4);
+  keyLight.name = "theme-key-light";
   keyLight.position.set(6, 10, 8);
 
-  const fillLight = new DirectionalLight(0x93c5fd, 0.45);
+  const fillLight = new DirectionalLight(SCENE_THEMES.dark.fill, 0.45);
+  fillLight.name = "theme-fill-light";
   fillLight.position.set(-5, 4, -6);
 
-  const grid = new GridHelper(20, 20, 0x2a2d35, 0x2a2d35);
+  const grid = new GridHelper(
+    20,
+    20,
+    SCENE_THEMES.dark.grid,
+    SCENE_THEMES.dark.grid,
+  );
+  grid.name = "theme-grid";
   scene.add(hemisphereLight, ambientLight, keyLight, fillLight, grid);
 
   return scene;
@@ -270,7 +337,7 @@ function buildRenderer(canvasElement: HTMLCanvasElement) {
     antialias: true,
   });
 
-  renderer.setClearColor(0x1a1d23, 1);
+  renderer.setClearColor(SCENE_THEMES.dark.background, 1);
   renderer.outputColorSpace = "srgb";
 
   return renderer;
@@ -330,4 +397,38 @@ function easeInOutCubic(value: number) {
   return value < 0.5
     ? 4 * value * value * value
     : 1 - Math.pow(-2 * value + 2, 3) / 2;
+}
+
+function applySceneTheme(scene: Scene, theme: ThemeMode) {
+  const colors = SCENE_THEMES[theme];
+  scene.background = new Color(colors.background);
+
+  const hemisphereLight = scene.getObjectByName("theme-hemisphere-light");
+  if (hemisphereLight instanceof HemisphereLight) {
+    hemisphereLight.color.setHex(colors.hemisphereSky);
+    hemisphereLight.groundColor.setHex(colors.hemisphereGround);
+  }
+
+  const ambientLight = scene.getObjectByName("theme-ambient-light");
+  if (ambientLight instanceof AmbientLight) {
+    ambientLight.color.setHex(colors.ambient);
+  }
+
+  const keyLight = scene.getObjectByName("theme-key-light");
+  if (keyLight instanceof DirectionalLight) {
+    keyLight.color.setHex(colors.key);
+  }
+
+  const fillLight = scene.getObjectByName("theme-fill-light");
+  if (fillLight instanceof DirectionalLight) {
+    fillLight.color.setHex(colors.fill);
+  }
+
+  const oldGrid = scene.getObjectByName("theme-grid");
+  if (oldGrid) {
+    scene.remove(oldGrid);
+  }
+  const newGrid = new GridHelper(20, 20, colors.grid, colors.grid);
+  newGrid.name = "theme-grid";
+  scene.add(newGrid);
 }

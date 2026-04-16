@@ -8,6 +8,7 @@ import ThreeEngineController from "./src/3d/engine";
 import SceneCanvas from "./src/components/SceneCanvas";
 import Toolbar from "./src/toolbar";
 import { ShapeProvider, useShapeActions } from "./src/shapes/ShapeProvider";
+import { ThemeProvider } from "./src/theme/ThemeProvider";
 import "./styles/app.css";
 
 export interface AppHandle {
@@ -38,26 +39,28 @@ function AppShell() {
   const [projectName, setProjectName] = useState("Untitled Project");
 
   return (
-    <ShapeProvider>
-      <GlobalShortcuts />
-      <nav className="top-toolbar">
-        <Toolbar
-          projectName={projectName}
-          setProjectName={setProjectName}
-        />
-      </nav>
-      <div className="main-container">
-        <aside id="shape-panel" className="left-bar">
-          <ShapePanel />
-        </aside>
-        <main id="main-view" className="center-area">
-          <SceneCanvas />
-        </main>
-        <ResizableRightSidebar>
-          <ShapeTree projectName={projectName} />
-        </ResizableRightSidebar>
-      </div>
-    </ShapeProvider>
+    <ThemeProvider>
+      <ShapeProvider>
+        <GlobalShortcuts />
+        <nav className="top-toolbar">
+          <Toolbar
+            projectName={projectName}
+            setProjectName={setProjectName}
+          />
+        </nav>
+        <div className="main-container">
+          <aside id="shape-panel" className="left-bar">
+            <ShapePanel />
+          </aside>
+          <main id="main-view" className="center-area">
+            <SceneCanvas />
+          </main>
+          <ResizableRightSidebar>
+            <ShapeTree projectName={projectName} />
+          </ResizableRightSidebar>
+        </div>
+      </ShapeProvider>
+    </ThemeProvider>
   );
 }
 

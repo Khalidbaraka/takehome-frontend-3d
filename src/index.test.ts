@@ -20,6 +20,8 @@ vi.mock("./3d/buildShape", { spy: true });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  window.localStorage.removeItem("machine-builder-theme");
+  delete document.documentElement.dataset.theme;
 });
 
 describe("App Features", () => {
@@ -280,6 +282,29 @@ describe("App Features", () => {
         app.root.querySelector('[data-testid="shape-tree-project-name"]')
           ?.textContent,
       ).toBe("Updated Project");
+    });
+  });
+
+  it("should toggle between dark and light themes", async () => {
+    await withApp(async (app) => {
+      const themeToggle = await waitFor(
+        () =>
+          app.root.querySelector(
+            '[data-testid="theme-toggle"]',
+          ) as HTMLElement | null,
+      );
+
+      expect(document.documentElement.dataset.theme).toBe("dark");
+
+      clickElement(themeToggle);
+      await flushUi();
+
+      expect(document.documentElement.dataset.theme).toBe("light");
+
+      clickElement(themeToggle);
+      await flushUi();
+
+      expect(document.documentElement.dataset.theme).toBe("dark");
     });
   });
 
