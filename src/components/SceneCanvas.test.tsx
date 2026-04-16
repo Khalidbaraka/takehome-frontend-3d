@@ -67,7 +67,7 @@ describe("SceneCanvas", () => {
       clientY: $canvas.clientHeight / 2,
     });
 
-    expect(mockedMesh.material.color.getStyle()).toBe("rgb(255,255,0)");
+    expect(mockedMesh.material.color.getStyle()).toBe("rgb(253,224,71)");
     expect(mockedMesh.userData.isSelected).toBe(true);
   });
 });
