@@ -136,7 +136,7 @@ The solution was iterative:
 6. remove direct broad context consumption from each row, then simplify the row implementation again once memoization did not show a strong payoff in profiling/debugging
 7. auto-expand the selected branch and scroll the selected row into view when selection comes from the scene
 
-The bidirectional navigation UX — clicking a tree node focuses the camera on that shape, and clicking a shape in the scene opens its branch and scrolls it into view — is covered in detail in section 5, since it was introduced alongside the scene rendering improvements.
+The bidirectional navigation UX (clicking a tree node focuses the camera on that shape, and clicking a shape in the scene opens its branch and scrolls it into view) is covered in detail in section 5, since it was introduced alongside the scene rendering improvements.
 
 Big O and scalability impact:
 
@@ -144,12 +144,11 @@ Context on "before": the original code did not use a React context at all. `Shap
 
 - before (intermediate state after provider was introduced): every row called `useShapeState()` directly, so N rows meant N context subscriptions and any state change triggered N re-render checks
 - after: only `ShapeTree` subscribes to context; rows receive props, reducing subscriptions to 1
-- `ShapeTreeNode` is currently not wrapped in `React.memo` — it was tried and removed because the prop comparison overhead did not show a net win at the shape counts tested, so a `ShapeTree` re-render still re-renders all visible rows; the saving is in subscription count, not in render work per state change
 
 Scalability outlook:
 
-- at 1,000 shapes, the main gain is one context subscription instead of 1,000 — visible row re-renders on each state change are still proportional to what is expanded in the tree
-- at 10,000 shapes, the remaining pressure is the cost of rendering a very large nested DOM tree — the right solution there is list virtualization so only visible rows are rendered at all, regardless of total shape count
+- at 1,000 shapes, the main gain is one context subscription instead of 1,000; visible row re-renders on each state change are still proportional to what is expanded in the tree
+- at 10,000 shapes, the remaining pressure is the cost of rendering a very large nested DOM tree; the right solution there is list virtualization so only visible rows are rendered at all, regardless of total shape count
 
 ### 5. Rendering quality
 
@@ -224,7 +223,39 @@ Scalability impact:
 - at 1,000 shapes this noticeably reduces render work for components like `Toolbar` and `ShapePanel` that have no reason to update on each shape add or delete
 - at 10,000 shapes this matters more because the mutation rate is higher and the savings per mutation compound
 
-### 8. Overall 1,000 vs 10,000 shape outlook
+### 8. Dark and light mode via ThemeProvider
+
+After the core behavior was stable, the app only supported a single hardcoded dark theme. Colors were scattered across multiple CSS files and the Three.js engine with no shared source.
+
+Problems:
+
+- panel, toolbar, tree, and scene colors were hardcoded in several places
+- adding a light theme would have required editing styles one file at a time
+- the 3D scene background, lights, and grid had no connection to any UI-level theme state
+
+The solution:
+
+1. introduce a `ThemeProvider` that reads from `localStorage` and exposes a `useTheme` hook with `theme` and `toggleTheme`
+2. reflect the active theme on `document.documentElement.dataset.theme` so CSS variables switch automatically
+3. define a `SCENE_THEMES` map in `engine.ts` with per-theme values for background, grid, hemisphere light, and fill light
+4. add an `applyTheme(theme)` method to `ThreeEngineController` that updates the scene and triggers a render
+5. call `applyTheme` from `SceneCanvas` in a `useLayoutEffect` that re-runs whenever `theme` changes
+
+Key implementation detail — grid color:
+
+`GridHelper` bakes colors into the geometry's vertex color buffer at construction time using `vertexColors: true`. Setting `material.color` after the fact has no visible effect. The correct approach is to remove the old `GridHelper` from the scene and add a new one with the correct colors whenever the theme changes.
+
+Key implementation detail — shape selection highlight:
+
+The selection highlight uses a shared `MeshStandardMaterial` with a fixed color rather than per-shape emissive tinting. Emissive tinting gives inconsistent results because the same yellow emissive on a red shape looks orange, while on a blue shape it looks different again. A shared material ensures every selected shape looks identical regardless of its original color, and `MeshStandardMaterial` still responds to scene lighting so shapes do not look flat when selected.
+
+Tradeoff:
+
+- rebuilding the `GridHelper` on each theme switch is more work than an in-place update, but it is the only correct approach given how Three.js bakes vertex colors at construction time
+- a shared highlight material keeps selection visually consistent and avoids per-shape clone allocations on every selection change
+- this does not change algorithmic complexity, but it reduces styling fragility by centralizing all color decisions into a single token layer
+
+### 9. Overall 1,000 vs 10,000 shape outlook
 
 At around 1,000 shapes, the current architecture should behave much better than the starting point because:
 
