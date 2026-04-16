@@ -3,6 +3,7 @@ import {
   Box3,
   Color,
   DirectionalLight,
+  GridHelper,
   HemisphereLight,
   Object3D,
   PerspectiveCamera,
@@ -257,7 +258,8 @@ function buildScene() {
   const fillLight = new DirectionalLight(0x93c5fd, 0.45);
   fillLight.position.set(-5, 4, -6);
 
-  scene.add(hemisphereLight, ambientLight, keyLight, fillLight);
+  const grid = new GridHelper(20, 20, 0x2a2d35, 0x2a2d35);
+  scene.add(hemisphereLight, ambientLight, keyLight, fillLight, grid);
 
   return scene;
 }
