@@ -7,7 +7,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { Mesh, MeshBasicMaterial, Vector3 } from "three";
+import { Mesh, MeshStandardMaterial, Vector3 } from "three";
 import { buildShape, type Shape } from "../3d/buildShape";
 import ThreeEngineController from "../3d/engine";
 import { RayCastService } from "../3d/raycaster";
@@ -73,11 +73,10 @@ export function ShapeProvider({ children }: PropsWithChildren) {
   const selectedMeshRef = useRef<Mesh | null>(null);
   const raycasterRef = useRef(new RayCastService());
   const highlightMaterialRef = useRef(
-    new MeshBasicMaterial({
-      color: 0xffff00,
-      depthTest: false,
-      transparent: true,
-      opacity: 0.95,
+    new MeshStandardMaterial({
+      color: 0xfde047,
+      roughness: 0.35,
+      metalness: 0.05,
     }),
   );
 
