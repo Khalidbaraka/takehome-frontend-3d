@@ -44,7 +44,7 @@ The solution was implemented iteratively:
 2. fix event propagation so delete clicks do not trigger unintended selection
 3. clear selection when the selected shape is inside the deleted subtree
 4. switch numbering to stable display numbers instead of position-based relabeling
-5. split the tree into smaller focused components so deletion and nested rendering were easier to reason about
+5. refactor the tree into smaller focused components so deletion logic and nested rendering were easier to reason about (structural detail covered in section 4)
 6. add tests for deleting children, deleting parent subtrees, and clearing stale selection
 
 Complexity impact:
@@ -117,14 +117,13 @@ At 10,000 shapes, this architecture does not eliminate every cost, rendering a l
 
 ### 4. Tree rerender scope and nested-tree usability
 
-The tree UI had both usability issues and scaling issues.
+The tree UI had both usability/design issues and scaling issues.
 
 Problems:
 
 - nested rows shifted the whole interactive row instead of only indenting inner content
 - long labels could truncate awkwardly
 - guide lines and selection styling needed refinement
-- every row consumed broad shared state directly, which made rerender scope wider than necessary
 - scene-driven selection and tree-driven selection did not fully help the user navigate between the two views
 
 The solution was iterative:
@@ -137,16 +136,19 @@ The solution was iterative:
 6. remove direct broad context consumption from each row, then simplify the row implementation again once memoization did not show a strong payoff in profiling/debugging
 7. auto-expand the selected branch and scroll the selected row into view when selection comes from the scene
 
+The bidirectional navigation UX — clicking a tree node focuses the camera on that shape, and clicking a shape in the scene opens its branch and scrolls it into view — is covered in detail in section 5, since it was introduced alongside the scene rendering improvements.
+
 Big O and scalability impact:
 
-- before: every row called `useShapes()` directly, so N rows meant N context subscriptions — any state change triggered N re-render checks
+Context on "before": the original code did not use a React context at all. `ShapeList` subscribed to a notification center and `ShapeNode` rows received props from it, so N rows did not mean N subscriptions in the original starting point. The N-subscription issue was an intermediate state that was introduced when `ShapeProvider` was added and rows initially called `useShapeState()` directly, before reads were lifted upward.
+
+- before (intermediate state after provider was introduced): every row called `useShapeState()` directly, so N rows meant N context subscriptions and any state change triggered N re-render checks
 - after: only `ShapeTree` subscribes to context; rows receive props, reducing subscriptions to 1
-- however, `ShapeTreeNode` is not memoized, so a `ShapeTree` re-render still re-renders all visible rows — the saving is in subscription count, not in render work per state change
-- memoizing rows with `React.memo` was tried but removed because the prop comparison overhead did not show a net win at the shape counts tested
+- `ShapeTreeNode` is currently not wrapped in `React.memo` — it was tried and removed because the prop comparison overhead did not show a net win at the shape counts tested, so a `ShapeTree` re-render still re-renders all visible rows; the saving is in subscription count, not in render work per state change
 
 Scalability outlook:
 
-- at 1,000 shapes, the main gain is one context subscription instead of 1,000, and O(1) state lookups instead of scene traversal — visible row re-renders on each state change are still proportional to what is expanded in the tree
+- at 1,000 shapes, the main gain is one context subscription instead of 1,000 — visible row re-renders on each state change are still proportional to what is expanded in the tree
 - at 10,000 shapes, the remaining pressure is the cost of rendering a very large nested DOM tree — the right solution there is list virtualization so only visible rows are rendered at all, regardless of total shape count
 
 ### 5. Rendering quality
@@ -164,9 +166,10 @@ This started as a readability improvement, and later became a more explicit rend
 
 The scene interaction flow was also improved so selection now works as navigation:
 
-1. selecting from the tree focuses the camera on the chosen shape instead of only changing highlight state
+1. selecting from either the tree or the scene focuses the camera on the chosen shape — both `selectShape` and `selectShapeFromCanvas` call `engine.focusObject`, so neither input leaves the user staring at an empty viewport
 2. selecting from the scene reveals the matching tree row by opening the selected branch and scrolling it into view
-3. reset view was added so camera focus is useful without trapping the user in a zoomed-in state
+3. selecting from the tree highlights the corresponding shape and expands the branch
+4. reset view was added so camera focus is useful without trapping the user in a zoomed-in state
 
 Scalability impact:
 
@@ -212,7 +215,7 @@ Consumers were migrated to the specific hook they need:
 - `CountComponent` → `useShapeState()`
 - `ShapeTree` → both, since it reads state for display and actions for interaction
 
-`useShapes()` is kept as a combined spread for tests and cases that genuinely need both.
+Tests render the full app through `initializeApp()` and interact via the DOM, so they do not need a combined hook. `useShapes()` was removed once it was no longer referenced.
 
 Scalability impact:
 
@@ -256,7 +259,7 @@ After correctness and state flow were stabilized, the UI was improved to make th
 
 Tradeoff:
 
-- styling changes were intentionally secondary to correctness and architecture
+- UI polish was done last, after correctness and architecture were stable. Polishing a broken or poorly-structured UI just means redoing that work later
 - the goal was a cleaner and more usable interface, not a full visual redesign
 
 ## Final State
