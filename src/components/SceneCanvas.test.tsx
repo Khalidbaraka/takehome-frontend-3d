@@ -3,25 +3,32 @@ import { render } from "vitest-browser-react";
 import { act, useEffect } from "react";
 import { BoxGeometry, BufferGeometry, Mesh, MeshBasicMaterial, Vector3 } from "three";
 import SceneCanvas from "./SceneCanvas";
-import { ShapeProvider, useShapes } from "../shapes/ShapeProvider";
+import {
+  ShapeProvider,
+  useShapeActions,
+  useShapeState,
+} from "../shapes/ShapeProvider";
+
+type TestShapeApi = ReturnType<typeof useShapeState> & ReturnType<typeof useShapeActions>;
 
 describe("SceneCanvas", () => {
   function CaptureActions({
     onCapture,
   }: {
-    onCapture: (actions: ReturnType<typeof useShapes>) => void;
+    onCapture: (actions: TestShapeApi) => void;
   }) {
-    const actions = useShapes();
+    const state = useShapeState();
+    const actions = useShapeActions();
 
     useEffect(() => {
-      onCapture(actions);
-    }, [actions, onCapture]);
+      onCapture({ ...state, ...actions });
+    }, [actions, onCapture, state]);
 
     return null;
   }
 
   async function renderSceneCanvas() {
-    let actions: ReturnType<typeof useShapes> | undefined;
+    let actions: TestShapeApi | undefined;
     const { getByTestId } = await render(
       <ShapeProvider>
         <CaptureActions

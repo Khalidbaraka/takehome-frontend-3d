@@ -49,9 +49,6 @@ type ShapeActionsContextValue = Pick<
   | "resetView"
 >;
 
-/** @deprecated Use useShapeState / useShapeActions instead */
-export type ShapeActions = ShapeActionsContextValue;
-
 type MaterialWithOptionalColor = {
   color?: {
     getStyle: () => string;
@@ -59,7 +56,9 @@ type MaterialWithOptionalColor = {
 };
 
 const ShapeStateContext = createContext<ShapeStateContextValue | null>(null);
-const ShapeActionsContext = createContext<ShapeActionsContextValue | null>(null);
+const ShapeActionsContext = createContext<ShapeActionsContextValue | null>(
+  null,
+);
 
 /**
  * ShapeProvider is the source of truth for app/UI state.
@@ -229,7 +228,14 @@ export function ShapeProvider({ children }: PropsWithChildren) {
       selectShapeFromCanvas,
       resetView,
     }),
-    [createShape, deleteShape, deleteSelectedShape, selectShape, selectShapeFromCanvas, resetView],
+    [
+      createShape,
+      deleteShape,
+      deleteSelectedShape,
+      selectShape,
+      selectShapeFromCanvas,
+      resetView,
+    ],
   );
 
   return (
@@ -255,11 +261,6 @@ export function useShapeActions() {
     throw new Error("useShapeActions must be used within ShapeProvider");
   }
   return context;
-}
-
-/** @deprecated Prefer useShapeState / useShapeActions for targeted subscriptions */
-export function useShapes() {
-  return { ...useShapeState(), ...useShapeActions() };
 }
 
 type ShapeState = {

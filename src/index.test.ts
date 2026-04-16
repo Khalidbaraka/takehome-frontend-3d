@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Vector3 } from "three";
+import ThreeEngineController from "./3d/engine";
 import {
   withApp,
   queueMockShape,
@@ -104,6 +105,11 @@ describe("App Features", () => {
       color: 0x00ff00,
       uuid: "shape-tree-a",
     });
+    const focusSpy = vi.spyOn(
+      ThreeEngineController.getInstance(),
+      "focusObject",
+    );
+
     await withApp(async (app) => {
       await waitFor(() => findButtonByText(app.root, "Cube"));
 
@@ -119,6 +125,7 @@ describe("App Features", () => {
       const treeHeader = findShapeHeader(app.root, rootMesh.uuid);
       expect(treeHeader).not.toBeNull();
       expect(treeHeader?.getAttribute("data-selected")).toBe("true");
+      expect(focusSpy).toHaveBeenCalledWith(rootMesh);
     });
   });
 
@@ -224,15 +231,20 @@ describe("App Features", () => {
       await waitFor(() => findShapeItem(app.root, replacementRoot.uuid));
 
       expect(replacementRoot.parent?.type).toBe("Scene");
-      expect(app.root.querySelectorAll('[data-testid^="shape-item-"]')).toHaveLength(1);
+      expect(
+        app.root.querySelectorAll('[data-testid^="shape-item-"]'),
+      ).toHaveLength(1);
       expect(findShapeItem(app.root, replacementRoot.uuid)).not.toBeNull();
     });
   });
 
   it("should be able to update the project name and show the updated name in the shape list", async () => {
     await withApp(async (app) => {
-      const editButton = await waitFor(() =>
-        app.root.querySelector('[aria-label="Edit project name"]'),
+      const editButton = await waitFor(
+        () =>
+          app.root.querySelector(
+            '[aria-label="Edit project name"]',
+          ) as HTMLElement | null,
       );
 
       clickElement(editButton);
@@ -253,10 +265,21 @@ describe("App Features", () => {
       valueSetter?.call(input, "Updated Project");
       input.dispatchEvent(new Event("input", { bubbles: true }));
 
-      clickElement(app.root.querySelector('[aria-label="Save project name"]'));
+      clickElement(
+        app.root.querySelector(
+          '[aria-label="Save project name"]',
+        ) as HTMLElement | null,
+      );
       await flushUi();
 
-      expect(app.root.textContent).toContain("Updated Project");
+      expect(
+        app.root.querySelector('[data-testid="toolbar-project-name"]')
+          ?.textContent,
+      ).toBe("Updated Project");
+      expect(
+        app.root.querySelector('[data-testid="shape-tree-project-name"]')
+          ?.textContent,
+      ).toBe("Updated Project");
     });
   });
 
@@ -274,9 +297,9 @@ describe("App Features", () => {
       );
 
       expect(treeItem?.textContent).toContain("sphere");
-      expect(findColorSwatch(app.root, rootMesh.uuid)?.style.backgroundColor).toBe(
-        "rgb(255, 0, 0)",
-      );
+      expect(
+        findColorSwatch(app.root, rootMesh.uuid)?.style.backgroundColor,
+      ).toBe("rgb(255, 0, 0)");
     });
   });
 
@@ -305,9 +328,12 @@ describe("App Features", () => {
       clickElement(findToggleButton(app.root, parentMesh.uuid));
       await flushUi();
 
-      expect(findChildrenContainer(app.root, parentMesh.uuid)?.parentElement?.parentElement?.getAttribute("data-state")).toBe(
-        "closed",
-      );
+      expect(
+        findChildrenContainer(
+          app.root,
+          parentMesh.uuid,
+        )?.parentElement?.parentElement?.getAttribute("data-state"),
+      ).toBe("closed");
 
       clickElement(findToggleButton(app.root, parentMesh.uuid));
       const childTreeItem = await waitFor(() =>
@@ -315,9 +341,12 @@ describe("App Features", () => {
       );
 
       expect(childTreeItem).not.toBeNull();
-      expect(findChildrenContainer(app.root, parentMesh.uuid)?.parentElement?.parentElement?.getAttribute("data-state")).toBe(
-        "open",
-      );
+      expect(
+        findChildrenContainer(
+          app.root,
+          parentMesh.uuid,
+        )?.parentElement?.parentElement?.getAttribute("data-state"),
+      ).toBe("open");
     });
   });
 });

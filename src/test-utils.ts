@@ -103,9 +103,9 @@ export function findButtonByText(root: HTMLElement, text: string) {
   ) as HTMLButtonElement | null;
 }
 
-export function clickElement(element: Element | null | undefined) {
+export function clickElement(element: HTMLElement | null | undefined) {
   expect(element).not.toBeNull();
-  (element as HTMLElement).click();
+  element?.click();
 }
 
 export async function flushUi() {
