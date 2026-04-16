@@ -111,7 +111,9 @@ This was also the key decoupling step:
 - before: the UI depended much more directly on live Three.js objects and scene traversal
 - after: the UI reads a normalized indexed state model, while Three.js stays as the rendering and interaction layer behind that model
 
-At 1,000 shapes, this makes the system easier to reason about and cheaper to query. At 10,000 shapes, it does not solve every cost, but it gives the app a much better base than driving the UI directly from live scene objects.
+At 1,000 shapes, the practical difference is that any lookup, finding a shape by id, reading its children, checking its parent is now a single map read instead of a scene traversal. The UI never has to walk Three.js nodes to answer a data question.
+
+At 10,000 shapes, this architecture does not eliminate every cost, rendering a large scene and a large tree are still inherently expensive, but the expensive parts are now isolated to the rendering layer where they belong. App logic and UI queries stay cheap regardless of scene size, because they never touch the scene graph at all.
 
 ### 4. Tree rerender scope and nested-tree usability
 
@@ -137,13 +139,15 @@ The solution was iterative:
 
 Big O and scalability impact:
 
-- before: selection and tree updates were more likely to cause broad rerender fan-out because each row subscribed directly to shared context
-- after: row components receive narrower props, which makes data flow easier to control even though rendering a visible tree is still proportional to the amount of UI shown
+- before: every row called `useShapes()` directly, so N rows meant N context subscriptions — any state change triggered N re-render checks
+- after: only `ShapeTree` subscribes to context; rows receive props, reducing subscriptions to 1
+- however, `ShapeTreeNode` is not memoized, so a `ShapeTree` re-render still re-renders all visible rows — the saving is in subscription count, not in render work per state change
+- memoizing rows with `React.memo` was tried but removed because the prop comparison overhead did not show a net win at the shape counts tested
 
 Scalability outlook:
 
-- at 1,000 shapes, the tree should hold up much better than the original version because state reads are indexed and row updates are narrower
-- at 10,000 shapes, the main remaining pressure is not count lookup anymore, but the cost of rendering and interacting with a very large nested tree and scene
+- at 1,000 shapes, the main gain is one context subscription instead of 1,000, and O(1) state lookups instead of scene traversal — visible row re-renders on each state change are still proportional to what is expanded in the tree
+- at 10,000 shapes, the remaining pressure is the cost of rendering a very large nested DOM tree — the right solution there is list virtualization so only visible rows are rendered at all, regardless of total shape count
 
 ### 5. Rendering quality
 
